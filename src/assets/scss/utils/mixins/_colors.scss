@@ -1,0 +1,20 @@
+// This is to help use css property assing color with fallback. To use this mixin, use @include method, for example, @include grays(background, g-900), the expected output css is background:var(--g-900,1c1c1c)
+@mixin grays($property, $variable) {
+  #{$property}: var(--#{$variable}, map-get($grays, $variable));
+}
+
+@mixin blues($property, $variable) {
+  #{$property}: var(--#{$variable}, map-get($blues, $variable));
+}
+
+@mixin theme-colors($property, $variable) {
+  #{$property}: var(--#{$variable}, map-get($theme-colors, $variable));
+}
+
+@mixin notification-colors($property, $variable) {
+  #{$property}: var(--#{$variable}, map-get($notification-colors, $variable));
+}
+
+@mixin background-colors($property, $variable) {
+  #{$property}: var(--#{$variable}, map-get($background-colors, $variable));
+}

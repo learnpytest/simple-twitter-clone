@@ -1,0 +1,99 @@
+// Color system
+$white: #fff !default;
+$gray-50: #f5f8fa !default;
+$gray-75: #e6ecf0 !default;
+$gray-100: #e5e5e5 !default;
+$gray-150: #e0e0e0 !default;
+$gray-200: #ccd6dd !default;
+$gray-600: #657786 !default;
+$gray-650: #828282 !default;
+$gray-700: #9197a3 !default;
+$gray-900: #1c1c1c !default;
+$black: #000 !default;
+
+$grays: (
+  "g-0": $white,
+  "g-50": $gray-50,
+  "g-75": $gray-75,
+  "g-100": $gray-100,
+  "g-150": $gray-150,
+  "g-200": $gray-200,
+  "g-600": $gray-600,
+  "g-700": $gray-700,
+  "g-900": $gray-900,
+  "black": $black,
+) !default;
+
+$blue-800: #50b5ff !default;
+$blue-1000: #0099ff !default;
+
+$blues: (
+  "b-800": $blue-800,
+  "b-1000": $blue-1000,
+) !default;
+
+$pink: #fc5a5a !default;
+$red: #e0245e !default;
+$orange-100: #ff6600 !default;
+$orange-200: #ff4400 !default;
+$yellow: #ffba6c !default;
+$green: #82c43c !default;
+
+// theme color variables
+$primary: $orange-100 !default;
+$error: $pink !default;
+$success: $green !default;
+$disabled: $gray-650 !default;
+$disabled-second: #c0c0c0 !default;
+
+$theme-colors: (
+  "primary": $primary,
+  "error": $error,
+  "success": $success,
+  "disabled": $disabled,
+) !default;
+
+$notification-colors: (
+  "input-default": $gray-600,
+  "input-hover": $blue-800,
+  "input-error": $error,
+  "tweet-error": $error,
+  "alert-error": $error,
+  "input-success": $success,
+  "button-focus-outline-color": $yellow,
+  "button-hover-color": $orange-200,
+) !default;
+
+$background-colors: (
+  "bg-default": $gray-100,
+  "bg-secondary": $gray-50,
+  "bg-disabled": $gray-150,
+) !default;
+
+:root {
+  // this will generate all css variables for above colors from Color system, for example, --button-hover-color:#f50.  To use variable, use var() function
+  @each $prop, $var in $grays {
+    --#{$prop}: #{$var};
+  }
+  @each $prop, $var in $blues {
+    --#{$prop}: #{$var};
+  }
+  @each $prop, $var in $theme-colors {
+    --#{$prop}: #{$var};
+  }
+  @each $prop, $var in $notification-colors {
+    --#{$prop}: #{$var};
+  }
+  @each $prop, $var in $background-colors {
+    --#{$prop}: #{$var};
+  }
+
+  // font family Noto Sans TC by default
+  --ff-primary: "Noto Sans TC", sans-serif;
+
+  // font weight system
+  --fw-thin: 400;
+  --fw-normal: 500;
+  --fw-bold: 700;
+  --fw-bolder: 900;
+}
