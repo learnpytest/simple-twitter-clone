@@ -25,7 +25,7 @@ const socketOptions = {
 // const socket = io("http://localhost:3000", socketOptions);
 
 const socket = io(
-  "https://77fc-2001-b011-e-59a3-9de1-69a7-7562-a92f.ngrok.io",
+  "http://ecdd-2001-b011-e-3a69-b4fc-f6aa-204e-1228.ngrok.io",
   socketOptions
 );
 
