@@ -74,3 +74,17 @@ export const mixinEmptyImage = {
     },
   },
 };
+
+export const mixinFormatMessage = {
+  methods: {
+    formatMessage(message, type) {
+      return {
+        id: this.currentUser.id,
+        name: this.currentUser.name,
+        message,
+        type,
+        createdAt: new Date(),
+      };
+    },
+  },
+};

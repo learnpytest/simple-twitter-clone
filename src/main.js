@@ -4,6 +4,8 @@ import router from "./router";
 // import './assets/scss/reset.scss'
 import store from "./store";
 
+import VueChatScroll from "vue-chat-scroll";
+
 import VueSocketIO from "vue-socket.io";
 import {
   io
@@ -58,6 +60,8 @@ Vue.directive("focus", {
     console.log(el);
   },
 });
+
+Vue.use(VueChatScroll);
 
 export const vm = new Vue({
   router,

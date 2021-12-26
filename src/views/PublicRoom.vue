@@ -18,14 +18,16 @@
 
         <div class="active-users">
           <div class="active-user" v-for="user in allUsers" :key="user.id">
-            <img :src="user.avatar" alt="" />
+            <img :src="user.avatar | emptyImage" alt="" />
             <p class="user-name">{{ user.name }}</p>
 
             <p class="user-id">@{{ user.account }}</p>
           </div>
         </div>
       </div>
-      <div class="chat-room"><ChatRoom /></div>
+      <div class="chat-room" v-chat-scroll="{ always: false, smooth: true }">
+        <ChatRoom />
+      </div>
     </div>
   </div>
 </template>
@@ -36,6 +38,8 @@ import ChatRoom from "../modules/user/ChatRoom.vue";
 
 import currentUserAPI from "@/apis/currentUserAPI";
 
+import { mixinEmptyImage } from "@/utils/mixin";
+
 // import io from "socket.io-client";
 
 import socket from "../main";
@@ -43,6 +47,7 @@ import socket from "../main";
 import { mapState } from "vuex";
 
 export default {
+  mixins: [mixinEmptyImage],
   components: {
     Sidebar,
     NewTweetModal,
