@@ -4,6 +4,8 @@ import router from "./router";
 // import './assets/scss/reset.scss'
 import store from "./store";
 
+import VueChatScroll from "vue-chat-scroll";
+
 import VueSocketIO from "vue-socket.io";
 import {
   io
@@ -25,7 +27,7 @@ const socketOptions = {
 // const socket = io("http://localhost:3000", socketOptions);
 
 const socket = io(
-  "http://ecdd-2001-b011-e-3a69-b4fc-f6aa-204e-1228.ngrok.io",
+  "https://53c1-2001-b011-e-3a69-b4fc-f6aa-204e-1228.ngrok.io",
   socketOptions
 );
 
@@ -58,6 +60,8 @@ Vue.directive("focus", {
     console.log(el);
   },
 });
+
+Vue.use(VueChatScroll);
 
 export const vm = new Vue({
   router,

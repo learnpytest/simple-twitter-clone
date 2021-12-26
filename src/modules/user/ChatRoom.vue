@@ -24,16 +24,15 @@
           v-if="item.message && item.name !== currentUser.name"
         >
           <div class="reply-text-info bottom-align">
-            <img
-              class="user-pic"
-              src="./../../assets/images/Photo_user2.png"
-              alt=""
-            />
+            <div class="user-info">
+              <img class="user-pic" :src="item.avatar | emptyImage" alt="" />
+              <div class="user-name">{{ item.name }}</div>
+            </div>
             <div class="reply-text-time">
               <div class="reply-text">{{ item.message }}</div>
             </div>
           </div>
-          <!-- <p class="reply-time">下午6:02</p> -->
+          <p class="reply-time">{{ item.createdAt | fromNow }}</p>
         </div>
 
         <div
@@ -41,7 +40,7 @@
           class="sent-box right"
         >
           <div class="sent-text">{{ item.message }}</div>
-          <!-- <p class="sent-time">下午6:02</p> -->
+          <p class="sent-time">{{ item.createdAt | fromNow }}</p>
         </div>
       </div>
       <div class="chat-wrapper">
@@ -56,6 +55,7 @@
         id="sendtxt"
         placeholder="輸入訊息..."
         v-model="temp.message"
+        @keyup.enter="sendMessage"
       />
       <button class="sendBtn" @click="sendMessage">
         <img src="./../../assets/images/send_button.png" />
@@ -67,9 +67,15 @@
 import socket from "../../main";
 import { mapState } from "vuex";
 import currentUserAPI from "@/apis/currentUserAPI";
+import {
+  mixinEmptyImage,
+  mixinFormatMessage,
+  mixinFromNowFilters,
+} from "@/utils/mixin.js";
 
 export default {
   name: "ChatRooom",
+  mixins: [mixinEmptyImage, mixinFormatMessage, mixinFromNowFilters],
   sockets: {
     users: function (data) {
       this.users = data;
@@ -86,27 +92,22 @@ export default {
     return {
       ready: false,
       typing: false,
-      messages: [],
       userName: [],
       temp: {
         message: "",
         name: "",
       },
-      isNewuserComeIn: false,
       currentUser: {},
     };
   },
 
   methods: {
-    sendMessage() {
+    sendMessage(e) {
       // emit事件給server
+      e.target.focus();
+      if (!this.temp.message.trim().length) return;
       this.temp.name = this.currentUser.name;
-      socket.emit("message", {
-        id: this.currentUser.id,
-        name: this.temp.name,
-        message: this.temp.message,
-        type: 0,
-      });
+      socket.emit("message", this.formatMessage(this.temp.message, 0));
       this.temp.message = "";
       this.temp.name = "";
     },
@@ -274,10 +275,30 @@ export default {
   }
 }
 
-.user-pic {
+.user-info {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
   margin-right: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .user-name {
+    font-size: 10px;
+    color: #657786;
+  }
 }
+
+// .user-pic {
+//   width: 40px;
+//   height: 40px;
+//   border-radius: 50%;
+//   margin-right: 10px;
+// }
 </style>
