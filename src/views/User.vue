@@ -142,7 +142,7 @@ export default {
         const currentUserIdForCheck = data.id;
         if (currentUserIdForCheck === this.userObj.UserId) {
           // 判斷this.userObj.UserId如果是當前使用者要做下面的事
-          console.log(followingId, "currentuser");
+
           let FollowingsCount = this.userObj.FollowingsCount + 1;
           this.userObj = { ...this.userObj, FollowingsCount };
           return;
@@ -167,7 +167,7 @@ export default {
         const currentUserIdForCheck = data.id;
         if (currentUserIdForCheck === this.userObj.UserId) {
           // 判斷this.userObj.UserId如果是當前使用者要做下面的事
-          console.log(followingId, "currentuser");
+
           let FollowingsCount = this.userObj.FollowingsCount - 1;
           this.userObj = { ...this.userObj, FollowingsCount };
           return;

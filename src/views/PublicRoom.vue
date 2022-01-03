@@ -18,7 +18,17 @@
 
         <div class="active-users">
           <div class="active-user" v-for="user in allUsers" :key="user.id">
-            <img :src="user.avatar | emptyImage" alt="" />
+            <router-link
+              :to="{
+                name: 'private-room',
+                query: {
+                  id: user.id,
+                  room: `${user.id}` + `${currentUser.id}`,
+                },
+              }"
+            >
+              <img :src="user.avatar | emptyImage" alt="" />
+            </router-link>
             <p class="user-name">{{ user.name }}</p>
 
             <p class="user-id">@{{ user.account }}</p>
@@ -65,14 +75,6 @@ export default {
     disconnect() {
       console.log("socket disconnected!");
     },
-
-    allMessages: function (data) {
-      console.log("publichroom.js allMessages", data);
-    },
-
-    joined: function (obj) {
-      console.log("publicroom", obj);
-    },
   },
   data() {
     return {
@@ -111,6 +113,7 @@ export default {
         }
         this.currentUser = { ...data };
         this.newUser();
+
         // socket.emit("joined", this.currentUser);
       } catch (err) {
         console.log(err);

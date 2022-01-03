@@ -116,6 +116,11 @@ const routes = [{
     component: () => import("@/views/PublicRoom"),
   },
   {
+    path: "/private-room",
+    name: "private-room",
+    component: () => import("@/views/PrivateRoom"),
+  },
+  {
     path: "/user/setting",
     name: "user-setting",
     component: () => import("@/views/UserSetting"),

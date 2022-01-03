@@ -44,6 +44,22 @@
         </router-link>
       </li>
       <li>
+        <router-link
+          :to="{
+            name: 'private-room',
+          }"
+        >
+          <div class="nav-link">
+            <img
+              class="filter-orange"
+              src="./../../assets/images/icon_chat.svg"
+              alt=""
+            />
+            <p class="nav-link_text">私人聊天室</p>
+          </div>
+        </router-link>
+      </li>
+      <li>
         <router-link :to="{ name: 'user-setting' }">
           <div class="nav-link">
             <img

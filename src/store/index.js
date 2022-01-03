@@ -22,10 +22,48 @@ export default new Vuex.Store({
   state: {
     allMessages: [],
     allUsers: [],
-    newUserReady: {},
+    rooms: {
+      isUpdating: false,
+    },
   },
-  mutations: {},
-  actions: {},
+  getters: {
+    getRooms: (state) => state.rooms,
+    getRoomState: (state) => (room) => state.rooms[room],
+  },
+  mutations: {
+    setRoomsState: (state, rooms) => {
+      state.rooms = rooms;
+    },
+    appendRoomMessage: (state, {
+      room,
+      message
+    }) => {
+      state.rooms[room].messages.push(message);
+    },
+  },
+  actions: {
+    setRoomsState: ({
+      commit
+    }, rooms) => {
+      commit("setRoomsState", rooms);
+    },
+    getRoomState: ({
+      getters
+    }, room) => {
+      getters.getRoomState(room);
+    },
+    appendRoomMessage: ({
+      commit
+    }, {
+      room,
+      message
+    }) => {
+      commit("appendRoomMessage", {
+        room,
+        message,
+      });
+    },
+  },
   modules: {
     login,
     user,
