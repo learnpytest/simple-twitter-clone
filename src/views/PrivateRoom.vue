@@ -299,6 +299,7 @@ export default {
 .reply-box {
   width: 100%;
   margin: 10px 0;
+  color:$gray-900;
 }
 
 .reply-text-info {
