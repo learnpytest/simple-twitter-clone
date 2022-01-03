@@ -27,7 +27,7 @@ const socketOptions = {
 // const socket = io("http://localhost:3000", socketOptions);
 
 const socket = io(
-  "https://53c1-2001-b011-e-3a69-b4fc-f6aa-204e-1228.ngrok.io",
+  "https://9f27-2001-b011-e-5e51-7c34-27dc-d728-30f3.ngrok.io",
   socketOptions
 );
 
@@ -36,9 +36,9 @@ const socket = io(
 //   socketOptions
 // );
 
-socket.onAny((event, ...args) => {
-  console.log("main.js收到的資訊", event, args);
-});
+// socket.onAny((event, ...args) => {
+//   console.log("main.js收到的資訊", event, args);
+// });
 
 // socket.emit("message", "Hello user");
 

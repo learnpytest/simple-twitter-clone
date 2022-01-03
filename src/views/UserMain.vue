@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="container" v-if="!isProcessing">
+  <div class="container">
     <div class="new-tweet-modal" v-if="showModal">
       <NewTweetModal
         :initialShowModal="showModal"
@@ -35,10 +35,6 @@
       <div class="popular"><Popular /></div>
     </div>
   </div>
-
-  <!-- <div v-else-if="isProcessing" class="container" style="text-align: center">
-    <i class="fas fa-spinner fa-spin fa-2x"></i>
-  </div> -->
 </template>
 
 <script>
@@ -49,9 +45,6 @@ import Sidebar from "../modules/user/Sidebar.vue";
 import NewTweetModal from "../modules/user/NewTweetModal.vue";
 import ReplyTweetModal from "../modules/user/ReplyTweetModal.vue";
 
-import { mapGetters } from "vuex";
-
-import { GET_IS_PROCESSING } from "../store/store-types";
 import tweetsApi from "./../apis/tweets";
 export default {
   components: {
@@ -106,14 +99,6 @@ export default {
         this.showReplyModal = false;
       }
     },
-  },
-  computed: {
-    ...mapGetters({
-      isProcessing: GET_IS_PROCESSING,
-    }),
-  },
-  watch: {
-    isProcessing: "getTweets",
   },
 };
 </script>

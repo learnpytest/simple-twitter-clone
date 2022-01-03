@@ -12,13 +12,25 @@
         編輯個人資料
       </button>
       <div class="other-user-btns" v-if="currentUserId !== userObj.UserId">
-        <div class="msg-btn">
+        <router-link
+          class="msg-btn"
+          :to="{
+            name: 'private-room',
+            query: {
+              to: userObj.UserId,
+              room:
+                userObj.UserId < currentUserId
+                  ? `${userObj.UserId}${currentUserId}`
+                  : `${currentUserId}${userObj.UserId}`,
+            },
+          }"
+        >
           <img
             src="./../../assets/images/btn_messege.svg"
             alt=""
             class="msg-icon"
           />
-        </div>
+        </router-link>
         <div class="noti-btn">
           <img
             src="./../../assets/images/btn_noti.svg"

@@ -82,6 +82,25 @@ export const mixinFormatMessage = {
         id: this.currentUser.id,
         name: this.currentUser.name,
         message,
+
+        type,
+        createdAt: new Date(),
+      };
+    },
+  },
+};
+
+export const mixinFormatGroupMessage = {
+  methods: {
+    formatGroupMessage(message, type, room) {
+      return {
+        room,
+        userId: this.currentUser.id,
+        account: this.currentUser.account,
+        name: this.currentUser.name,
+        avatar: this.currentUser.avatar,
+        message,
+        toUser: this.otherUser,
         type,
         createdAt: new Date(),
       };
