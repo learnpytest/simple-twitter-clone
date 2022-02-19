@@ -12,7 +12,6 @@ import VueSocketIO from "vue-socket.io";
 import {
   io
 } from "socket.io-client";
-// const socket = io("http://localhost:3000");
 
 Vue.config.productionTip = false;
 const socketOptions = {
@@ -26,17 +25,12 @@ const socketOptions = {
   transports: ["websocket", "polling"],
 };
 
-const socket = io("http://localhost:5000", socketOptions);
+// const socket = io("http://localhost:5000", socketOptions);
 
-// const socket = io(
-//   "https://8bf9-2001-b011-e-36f4-7cff-6f21-96bf-3e60.ngrok.io",
-//   socketOptions
-// );
-
-// const socket = io(
-//   "https://twitter-llrs-chatroom.herokuapp.com/",
-//   socketOptions
-// );
+const socket = io(
+  "https://591f-2001-b011-e-3167-5946-d13b-81dd-f47.ngrok.io",
+  socketOptions
+);
 
 Vue.use(
   new VueSocketIO({

@@ -37,7 +37,7 @@
       </div>
       <div
         class="chat-room"
-        :v-chat-scroll="{
+        v-chat-scroll="{
           always: false,
           smooth: true,
         }"
