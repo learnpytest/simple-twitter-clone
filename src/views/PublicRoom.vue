@@ -15,8 +15,8 @@
             <p>上線使用者 ({{ allUsers.length }})</p>
           </div>
         </div>
-
-        <div class="active-users">
+        <Spinner v-if="isLoading" />
+        <div class="active-users" v-else>
           <div class="active-user" v-for="user in allUsers" :key="user.id">
             <router-link
               :to="{
@@ -35,7 +35,14 @@
           </div>
         </div>
       </div>
-      <div class="chat-room" v-chat-scroll="{ always: false, smooth: true }">
+      <div
+        class="chat-room"
+        v-chat-scroll="{
+          always: false,
+          smooth: true,
+        }"
+        @click.stop.prevent="makeUnreadPublicMessageZero"
+      >
         <ChatRoom />
       </div>
     </div>
@@ -45,20 +52,22 @@
 import Sidebar from "../modules/user/Sidebar.vue";
 import NewTweetModal from "../modules/user/NewTweetModal.vue";
 import ChatRoom from "../modules/user/ChatRoom.vue";
+import Spinner from "@/components/Loaders/Spinner.vue";
 
 import currentUserAPI from "@/apis/currentUserAPI";
 
 import { mixinEmptyImage } from "@/utils/mixin";
 
-// import io from "socket.io-client";
-
 import socket from "../main";
 
 import { mapState } from "vuex";
 
+import errorHandler from "../utils/errorHandler";
+
 export default {
   mixins: [mixinEmptyImage],
   components: {
+    Spinner,
     Sidebar,
     NewTweetModal,
     ChatRoom,
@@ -67,30 +76,23 @@ export default {
     socket.emit("leaved", this.currentUser);
     next();
   },
-
-  sockets: {
-    connect() {
-      console.log("socket connected");
-    },
-    disconnect() {
-      console.log("socket disconnected!");
-    },
-  },
   data() {
     return {
       showModal: false,
       showReplyModal: false,
-      userName: "Louis",
+      isLoading: true,
       currentUser: {},
     };
   },
 
-  created() {
-    window.onbeforeunload = () => {
-      socket.emit("leaved", this.currentUser);
-    };
+  async created() {
+    // window.onbeforeunload = () => {
+    //   socket.emit("leaved", this.currentUser);
+    // };
 
-    this.fetchCurrentUser();
+    await this.fetchCurrentUserAndEmitNewUser();
+
+    this.makeUnreadPublicMessageZero();
   },
   computed: {
     ...mapState({
@@ -99,12 +101,18 @@ export default {
   },
 
   methods: {
-    newUser() {
-      socket.emit("user", { ...this.currentUser });
+    makeUnreadPublicMessageZero() {
+      // 修改畫面，Sidebar的公開聊天室未讀歸零
+      this.$store.dispatch("CLEAR_COMMUNITY_NOTIFICATION_UNREAD", {
+        currentUserId: this.currentUser.id,
+        types: ["3"],
+      });
+      // 修改資料庫自己的unread notification public message 歸零
+      socket.emit("afterReadPublicMessage", this.currentUser.id);
     },
-
-    async fetchCurrentUser() {
+    async fetchCurrentUserAndEmitNewUser() {
       try {
+        this.isLoading = true;
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
 
@@ -113,11 +121,13 @@ export default {
         }
         this.currentUser = { ...data };
         this.newUser();
-
-        // socket.emit("joined", this.currentUser);
+        this.isLoading = false;
       } catch (err) {
-        console.log(err);
+        errorHandler.generalErrorHandler(err)(this);
       }
+    },
+    newUser() {
+      socket.emit("user", { ...this.currentUser });
     },
 
     modalToggle() {

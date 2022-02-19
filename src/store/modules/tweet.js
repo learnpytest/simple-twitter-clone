@@ -1,8 +1,6 @@
 import tweets from "../../apis/tweets";
 
-import {
-  vm
-} from "../../main";
+import { vm } from "../../main";
 
 import {
   SET_IS_PROCESSING,
@@ -33,19 +31,13 @@ const getters = {
   [GET_ONE_USER_LIKES]: (state) => state.oenUserLikes,
 };
 const actions = {
-  [SET_ALL_TWEETS]: async ({
-    commit,
-    dispatch
-  }) => {
+  [SET_ALL_TWEETS]: async ({ commit, dispatch }) => {
     try {
       dispatch(SET_IS_PROCESSING, true);
       const res = await tweets.all();
       // send api to get reponse of unFiltered tweets and pass tweets to mutation to change state unFiltered the tweets
       // start
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
       if (statusText !== "OK") throw new Error("statusText");
       commit(SET_ALL_TWEETS, data);
       dispatch(SET_IS_PROCESSING, false);
@@ -62,36 +54,26 @@ const actions = {
       }, 5000);
     }
   },
-  [SET_ONE_USER_TWEETS]: async ({
-    commit
-  }, userId) => {
+  [SET_ONE_USER_TWEETS]: async ({ commit }, userId) => {
     // send api
 
     try {
       // const userId = rootState.user.currentUser.id;
       const res = await tweets.getOneUserTweet(userId);
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
       if (statusText !== "OK") throw new Error("statusText");
       commit(SET_ONE_USER_TWEETS, data);
     } catch (err) {
       throw new Error(err);
     }
   },
-  [SET_ONE_USER_REPLIES]: async ({
-    commit
-  }, userId) => {
+  [SET_ONE_USER_REPLIES]: async ({ commit }, userId) => {
     // send api
 
     try {
       // const userId = rootState.user.currentUser.id;
       const res = await tweets.getOneUserReplies(userId);
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
 
       if (statusText !== "OK") throw new Error("statusText");
       commit(SET_ONE_USER_REPLIES, data);
@@ -99,15 +81,10 @@ const actions = {
       throw new Error(err);
     }
   },
-  [SET_ONE_USER_LIKES]: async ({
-    commit
-  }, userId) => {
+  [SET_ONE_USER_LIKES]: async ({ commit }, userId) => {
     try {
       const res = await tweets.getOneUserLikes(userId);
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
       console.log("try", data);
       if (statusText !== "OK") throw new Error("statusText");
       commit(SET_ONE_USER_LIKES, data);

@@ -46,13 +46,13 @@
               id="liked-btn"
               src="./../../assets/images/icon_like_fill.svg"
               alt=""
-              @click.stop.prevent="unLike(tweet.TweetId)"
+              @click.stop.prevent="unLike(tweet.TweetId, tweet)"
               v-if="tweet.isLiked"
             />
             <img
               src="./../../assets/images/icon_like.svg"
               alt=""
-              @click.stop.prevent="addLike(tweet.TweetId)"
+              @click.stop.prevent="addLike(tweet.TweetId, tweet)"
               v-else
             />
 
@@ -66,11 +66,21 @@
   </div>
 </template>
 <script>
+import currentUserAPi from "../../apis/currentUserAPI";
 import likeshipAPI from "./../../apis/likeshipAPI";
-import { mixinEmptyImage, mixinFromNowFilters } from "../../utils/mixin";
+
+import {
+  mixinEmptyImage,
+  mixinFromNowFilters,
+  mixinHandleCommunityNotification,
+} from "../../utils/mixin";
 
 export default {
-  mixins: [mixinEmptyImage, mixinFromNowFilters],
+  mixins: [
+    mixinEmptyImage,
+    mixinFromNowFilters,
+    mixinHandleCommunityNotification,
+  ],
   props: {
     initialTweets: {
       type: Array,
@@ -86,6 +96,7 @@ export default {
     return {
       showReplyModal: false,
       tweets: [],
+      currentUser: {},
     };
   },
   watch: {
@@ -96,13 +107,19 @@ export default {
 
   created() {
     this.fetchData();
+    this.fetchCurrentUser();
   },
   methods: {
     fetchData() {
       this.showReplyModal = this.initialShowReplyModal;
       this.tweets = this.initialTweets;
     },
-    async addLike(tweetId) {
+    async fetchCurrentUser() {
+      const res = await currentUserAPi.getCurrentUser();
+      const { data } = res;
+      this.currentUser = { ...data };
+    },
+    async addLike(tweetId, tweet) {
       try {
         const { data } = await likeshipAPI.postLike(tweetId);
         if (data.status !== "success") {
@@ -120,11 +137,20 @@ export default {
             return { ...tweet };
           }
         });
+
+        // 通知訂閱人，喜歡增加一個，type 1
+        this.socketSendCommunityOneNotification(
+          "1",
+          this.currentUser,
+          null,
+          tweet.description,
+          tweet.TweetId
+        );
       } catch (error) {
         console.log("error", error);
       }
     },
-    async unLike(tweetId) {
+    async unLike(tweetId, tweet) {
       try {
         const { data } = await likeshipAPI.deleteLike(tweetId);
         if (data.status !== "success") {
@@ -141,6 +167,15 @@ export default {
             return { ...tweet };
           }
         });
+
+        // 通知訂閱人，收回喜歡一個，type 2
+        this.socketSendCommunityOneNotification(
+          "2",
+          this.currentUser,
+          null,
+          tweet.description,
+          tweet.TweetId
+        );
       } catch (error) {
         console.log("error", error);
       }

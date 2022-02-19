@@ -21,8 +21,6 @@
 </template>
 
 <script>
-// import { mapGetters } from "vuex";
-// import { GET_CURRENT_USER } from "../../store/store-types";
 import { mixinEmptyImage } from "../../utils/mixin";
 import currentUserAPI from "@/apis/currentUserAPI";
 export default {
@@ -66,11 +64,6 @@ export default {
       }
     },
   },
-  // computed: {
-  //   ...mapGetters({
-  //     getCurrentUser: GET_CURRENT_USER,
-  //   }),
-  // },
 };
 </script>
 

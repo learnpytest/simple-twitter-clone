@@ -1,6 +1,4 @@
-import {
-  apiHelper
-} from "../apis/apiHelper";
+import { apiHelper } from "../apis/apiHelper";
 
 // 後端應該有兩道與使用者有關的API，一條用id取得使用者，一條直接取得當前使用者，取得當前使用者不需要帶參數，只要header裡面有token，登入以後才能呼叫，依照token回傳當前使用者，接下來使用vuex action呼叫currentUser api
 export default {

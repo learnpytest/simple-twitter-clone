@@ -5,77 +5,99 @@
         <p>公開聊天室</p>
       </div>
     </div>
-
-    <div id="chat-wrapper">
-      <div
-        class="chat-wrapper"
-        v-for="(item, index) in allMessages"
-        :key="index"
-      >
-        <div class="online-box center" v-if="item.type === 1">
-          <span class="online-text">{{ item.name }} 上線</span>
-        </div>
-        <div class="online-box center" v-else-if="item.type === -1">
-          <span class="online-text">{{ item.name }} 下線</span>
-        </div>
-
+    <Spinner v-if="isLoading" />
+    <div v-else>
+      <div id="chat-wrapper">
         <div
-          class="reply-box"
-          v-if="item.message && item.name !== currentUser.name"
+          class="chat-wrapper"
+          v-for="(item, index) in allMessages"
+          :key="index"
         >
-          <div class="reply-text-info bottom-align">
-            <div class="user-info">
-              <img class="user-pic" :src="item.avatar | emptyImage" alt="" />
-              <div class="user-name">{{ item.name }}</div>
-            </div>
-            <div class="reply-text-time">
-              <div class="reply-text">{{ item.message }}</div>
-            </div>
+          <div
+            class="online-box center"
+            v-if="+item.type === 1 && item.account !== currentUser.account"
+          >
+            <span class="online-text">{{ item.name }} 上線</span>
           </div>
-          <p class="reply-time">{{ item.createdAt | fromNow }}</p>
-        </div>
+          <div
+            class="online-box center"
+            v-else-if="
+              +item.type === -1 && item.account !== currentUser.account
+            "
+          >
+            <span class="online-text">{{ item.name }} 下線</span>
+          </div>
 
-        <div
-          v-if="item.message && item.name === currentUser.name"
-          class="sent-box right"
-        >
-          <div class="sent-text">{{ item.message }}</div>
-          <p class="sent-time">{{ item.createdAt | fromNow }}</p>
+          <div
+            class="reply-box"
+            v-if="item.message && item.account !== currentUser.account"
+          >
+            <div class="reply-text-info bottom-align">
+              <div class="user-info">
+                <img class="user-pic" :src="item.avatar | emptyImage" alt="" />
+                <div class="user-name">{{ item.name }}</div>
+              </div>
+              <div class="reply-text-time">
+                <div class="reply-text">{{ item.message && item.message }}</div>
+              </div>
+            </div>
+            <p class="reply-time">{{ item.createdAt | fromNow }}</p>
+          </div>
+
+          <div
+            v-if="item.message && item.account === currentUser.account"
+            class="sent-box right"
+          >
+            <div class="sent-text">{{ item.message }}</div>
+            <p class="sent-time">{{ item.createdAt | fromNow }}</p>
+          </div>
+        </div>
+        <div class="chat-wrapper">
+          <div class="online-box center">
+            <span class="online-text" v-show="typing">正在輸入訊息...</span>
+          </div>
         </div>
       </div>
-      <div class="chat-wrapper">
-        <div class="online-box center">
-          <span class="online-text" v-show="typing">正在輸入訊息...</span>
-        </div>
+      <div class="chat-field">
+        <input
+          type="text"
+          id="sendtxt"
+          placeholder="輸入訊息..."
+          v-model="temp.message"
+          @keyup.enter="sendMessage"
+        />
+        <button class="sendBtn" @click="sendMessage">
+          <img src="./../../assets/images/send_button.png" />
+        </button>
       </div>
-    </div>
-    <div class="chat-field">
-      <input
-        type="text"
-        id="sendtxt"
-        placeholder="輸入訊息..."
-        v-model="temp.message"
-        @keyup.enter="sendMessage"
-      />
-      <button class="sendBtn" @click="sendMessage">
-        <img src="./../../assets/images/send_button.png" />
-      </button>
     </div>
   </div>
 </template>
 <script>
 import socket from "../../main";
+
+import Spinner from "@/components/Loaders/Spinner.vue";
+
 import { mapState } from "vuex";
 import currentUserAPI from "@/apis/currentUserAPI";
 import {
   mixinEmptyImage,
   mixinFormatMessage,
   mixinFromNowFilters,
+  mixinHandleUnreadNotification,
 } from "@/utils/mixin.js";
+
+import errorHandler from "@/utils/errorHandler";
 
 export default {
   name: "ChatRooom",
-  mixins: [mixinEmptyImage, mixinFormatMessage, mixinFromNowFilters],
+  components: { Spinner },
+  mixins: [
+    mixinEmptyImage,
+    mixinFormatMessage,
+    mixinFromNowFilters,
+    mixinHandleUnreadNotification,
+  ],
   sockets: {
     users: function (data) {
       this.users = data;
@@ -90,6 +112,7 @@ export default {
   },
   data() {
     return {
+      isLoading: true,
       ready: false,
       typing: false,
       userName: [],
@@ -106,13 +129,22 @@ export default {
       // emit事件給server
       e.target.focus();
       if (!this.temp.message.trim().length) return;
-      this.temp.name = this.currentUser.name;
-      socket.emit("message", this.formatMessage(this.temp.message, 0));
+      this.temp.name = this.currentUser.account;
+      // 修改message資料庫資料
+      socket.emit(
+        "message",
+        this.formatMessage(this.temp.message, 0, this.currentUser)
+      );
+      // 畫面
       this.temp.message = "";
       this.temp.name = "";
+
+      // 修改資料庫對方未讀資料，再修改線上使用者畫面
+      socket.emit("afterPublicMessageSend", this.currentUser.id);
     },
     async fetchCurrentUser() {
       try {
+        this.isLoading = true;
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
 
@@ -120,8 +152,10 @@ export default {
           throw new Error(statusText);
         }
         this.currentUser = { ...data };
+        this.isLoading = false;
       } catch (err) {
-        console.log(err);
+        this.isLoading = false;
+        errorHandler.generalErrorHandler(err)(this);
       }
     },
   },

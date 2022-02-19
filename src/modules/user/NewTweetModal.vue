@@ -35,13 +35,17 @@
   </form>
 </template>
 <script>
-import { mapGetters } from "vuex";
-import { GET_CURRENT_USER } from "../../store/store-types";
-import { mixinEmptyImage } from "../../utils/mixin";
 import currentUserAPi from "../../apis/currentUserAPI";
 import tweetsAPI from "../../apis/tweets";
+
+import { mapGetters } from "vuex";
+import { GET_CURRENT_USER } from "../../store/store-types";
+import {
+  mixinEmptyImage,
+  mixinHandleCommunityNotification,
+} from "../../utils/mixin";
 export default {
-  mixins: [mixinEmptyImage],
+  mixins: [mixinEmptyImage, mixinHandleCommunityNotification],
   props: {
     initialShowModal: {
       type: Boolean,
@@ -56,6 +60,7 @@ export default {
       currentUserId: "",
       submitEmptyField: false,
       currentUserPic: {},
+      currentUser: {},
     };
   },
   created() {
@@ -72,6 +77,7 @@ export default {
         const { avatar, id } = response.data;
         this.currentUserId = id;
         this.currentUserPic = avatar;
+        this.currentUser = response.data;
       } catch (error) {
         console.log("error", error);
       }
@@ -99,11 +105,17 @@ export default {
         const { data } = await tweetsAPI.postOneUserTweet({
           description: this.text,
         });
-
         if (data.status !== "success") {
           throw new Error(data.message);
         }
         this.$emit("updateData");
+        // 通知訂閱人，增加一個新推文，type 5
+        this.socketSendCommunityOneNotification(
+          "5",
+          this.currentUser,
+          null,
+          this.text
+        );
       } catch (error) {
         console.log("error", error);
       }

@@ -15,7 +15,7 @@
       <div class="follow-btn" v-if="following.isFollowed">
         <button
           class="following-btn"
-          @click.stop.prevent="cancel(following.followingId)"
+          @click.stop.prevent="cancel(following.followingId, following)"
         >
           正在跟隨
         </button>
@@ -23,7 +23,7 @@
       <div class="follow-btn" v-else>
         <button
           class="follower-btn"
-          @click.stop.prevent="post(following.followingId)"
+          @click.stop.prevent="post(following.followingId, following)"
         >
           跟隨
         </button>
@@ -32,8 +32,13 @@
   </div>
 </template>
 <script>
+import currentUserAPi from "../../apis/currentUserAPI";
 import { mapActions, mapGetters } from "vuex";
-import { mixinEmptyImage } from "../../utils/mixin";
+
+import {
+  mixinEmptyImage,
+  mixinHandleCommunityNotification,
+} from "../../utils/mixin";
 
 import {
   GET_CURRENT_USER_FOLLOWINGS,
@@ -43,22 +48,36 @@ import {
 } from "../../store/store-types";
 export default {
   name: "UserFollowings",
-  mixins: [mixinEmptyImage],
+  mixins: [mixinEmptyImage, mixinHandleCommunityNotification],
   created() {
     const userId = this.$route.params.id;
     this.$store.dispatch(SET_CURRENT_USER_FOLLOWINGS, userId);
-
-    // this.setCurrentUserFollowings();
+    this.fetchCurrentUser();
+  },
+  data() {
+    return {
+      currentUser: {},
+    };
   },
   methods: {
-    cancel(followingId) {
+    async fetchCurrentUser() {
+      const res = await currentUserAPi.getCurrentUser();
+      const { data } = res;
+      this.currentUser = { ...data };
+    },
+    cancel(followingId, follower) {
       const userId = this.$route.params.id;
       this.cancelFollow({ followingId, userId });
+
+      // 通知訂閱人，追蹤減少一個，type 4
+      this.socketSendCommunityOneNotification("4", this.currentUser, follower);
     },
-    post(followingId) {
+    post(followingId, follower) {
       const userId = this.$route.params.id;
       this.postFollowship({ followingId, userId });
-      // this.$store.dispatch(SET_CURRENT_USER_FOLLOWINGS, userId);
+
+      // 通知訂閱人，追蹤增加一個
+      this.socketSendCommunityOneNotification("3", this.currentUser, follower);
     },
     ...mapActions({
       cancelFollow: DELETE_FOLLOWSHIP,

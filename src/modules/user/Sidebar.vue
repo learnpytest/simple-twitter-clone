@@ -32,13 +32,39 @@
         </router-link>
       </li>
       <li>
+        <router-link
+          :to="{
+            name: 'community',
+          }"
+        >
+          <div class="nav-link community">
+            <span class="community__icon">
+              <img class="" src="./../../assets/images/btn_noti.svg" alt="" />
+              <span
+                v-if="notificationUnread.communityNotification"
+                class="community__notification"
+                >{{ notificationUnread.communityNotification }}</span
+              >
+            </span>
+            <p class="nav-link_text">通知</p>
+          </div>
+        </router-link>
+      </li>
+      <li>
         <router-link :to="{ name: 'public-room' }">
-          <div class="nav-link">
-            <img
-              class="filter-orange"
-              src="./../../assets/images/icon_chat.svg"
-              alt=""
-            />
+          <div class="nav-link community">
+            <span class="community__icon">
+              <img
+                class="filter-orange"
+                src="./../../assets/images/icon_chat.svg"
+                alt=""
+              />
+              <span
+                v-if="notificationUnread.publicMessage"
+                class="community__notification"
+                >{{ notificationUnread.publicMessage }}</span
+              >
+            </span>
             <p class="nav-link_text">公開聊天室</p>
           </div>
         </router-link>
@@ -49,13 +75,20 @@
             name: 'private-room',
           }"
         >
-          <div class="nav-link">
-            <img
-              class="filter-orange"
-              src="./../../assets/images/icon_chat.svg"
-              alt=""
-            />
-            <p class="nav-link_text">私人聊天室</p>
+          <div class="nav-link community">
+            <span class="community__icon">
+              <img
+                class="filter-orange"
+                src="./../../assets/images/icon_chat.svg"
+                alt=""
+              />
+              <span
+                v-if="sumUpOfUnreadPrivateMessages > 0"
+                class="community__notification"
+                >{{ sumUpOfUnreadPrivateMessages }}</span
+              >
+            </span>
+            <p class="nav-link_text">私人訊息</p>
           </div>
         </router-link>
       </li>
@@ -91,28 +124,80 @@
   </div>
 </template>
 <script>
-import { mapActions } from "vuex";
+import socket from "../../main";
+
+import { mapActions, mapGetters } from "vuex";
 import { REVOKE_AUTHENTICATION } from "@/store/store-types";
 import currentUserAPI from "@/apis/currentUserAPI";
+import { GET_COMMUNITY_NOTIFICATION } from "../../store/store-types";
+
+import { mixinHandleUnreadNotification } from "@/utils/mixin.js";
+
+import errorHandler from "../../utils/errorHandler";
 
 export default {
   name: "Sidebar",
+  mixins: [mixinHandleUnreadNotification],
   props: {
     initialShowModal: {
       type: Boolean,
       required: true,
     },
   },
+  sockets: {
+    displayUnreadNotification(unreadNotificationCounts) {
+      this.$store.dispatch(
+        "SET_COMMUNITY_NOTIFICATION_UNREAD",
+        unreadNotificationCounts
+      );
+    },
+    unreadNotificationPublicMessageAddOne() {
+      // 修改畫面
+      this.$store.dispatch(
+        "INCREMENT_COMMUNITY_NOTIFICATION_UNREAD_PUBLIC_MESSAGE"
+      );
+    },
+    displayAllUnreadPrivateMessages(myAllUnreadPrivateMessages) {
+      const sum = myAllUnreadPrivateMessages
+        .map((msg) => msg.unread)
+        .reduce((prev, now) => prev + now, 0);
+      this.$store.dispatch("SET_SUM_OF_UNREAD_PRIVATE_MESSAGES", sum);
+    },
+    allUnreadPrivateMessagesSumAddOne() {
+      this.$store.dispatch(
+        "SET_SUM_OF_UNREAD_PRIVATE_MESSAGES",
+        this.sumUpOfUnreadPrivateMessages + 1
+      );
+    },
+  },
   data() {
     return {
       showModal: "",
       currentUserId: "",
+      sum: 0,
     };
   },
-  created() {
-    this.getCurrentUser();
-  },
+  async created() {
+    try {
+      await this.getCurrentUser();
 
+      // @params userId:String
+      // @return socket event displayUnreadNotification
+      await socket.emit("getUnreadNotification", this.currentUserId.toString());
+      // 進入元件
+
+      await socket.emit("getAllUnreadPrivateMessages", this.currentUserId);
+    } catch (err) {
+      errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
+    }
+  },
+  computed: {
+    ...mapGetters({
+      communityNotification: GET_COMMUNITY_NOTIFICATION,
+      notificationUnread: "GET_COMMUNITY_NOTIFICATION_UNREAD",
+      sumUpOfUnreadPrivateMessages: "GET_SUM_OF_UNREAD_PRIVATE_MESSAGES",
+    }),
+  },
   methods: {
     ...mapActions({
       revokeAuthentication: REVOKE_AUTHENTICATION,
@@ -201,5 +286,24 @@ button {
 
 .logout {
   margin-bottom: 20px;
+}
+
+.community {
+  &__icon {
+    position: relative;
+  }
+  &__notification {
+    position: absolute;
+    right: 30%;
+    top: -30%;
+    width: 15px;
+    height: 15px;
+    line-height: 15px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    background-color: red;
+    color: white;
+  }
 }
 </style>

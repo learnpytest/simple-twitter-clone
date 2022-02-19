@@ -1,6 +1,7 @@
 // ./vue.config.js
 module.exports = {
-  publicPath: process.env.NODE_ENV === "production" ? "/Playground-Chatroom/" : "/",
+  publicPath:
+    process.env.NODE_ENV === "production" ? "/Playground-Chatroom/" : "/",
   devServer: {
     proxy: {
       "/socket.io": {

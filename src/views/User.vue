@@ -74,6 +74,8 @@
   </div>
 </template>
 <script>
+import socket from "../main";
+
 import Popular from "../modules/user/Popular.vue";
 import Sidebar from "../modules/user/Sidebar.vue";
 import UserProfile from "../modules/user/UserProfile.vue";
@@ -107,7 +109,7 @@ export default {
       showModal: false,
       showEditModal: false,
       showReplyModal: false,
-
+      currentUser: {},
       userTweets: [],
       userId: "",
       userObj: {},
@@ -124,22 +126,23 @@ export default {
     this.getUserRepliesTweets(this.userId);
     this.getUserLikes(this.userId);
   },
-  beforeRouteUpdate(to, from, next) {
-    // 路由改變時重新更新使用者資料
+  async beforeRouteUpdate(to, from, next) {
+    // 路由改變時重新更新使用者資料已經使用者與當前使用者訂閱關係
     const { id } = to.params;
-    this.fetchUser(id);
+    await this.fetchUser(id);
+    await this.fetchCurrentUser();
+    await socket.emit("getSubscribingStatus", {
+      subscriber: this.currentUser,
+      subscribed: this.userObj,
+    });
     next();
   },
   methods: {
     async updateFollow(followingId) {
       try {
-        const res = await currentUserAPI.getCurrentUser();
-        const { data, statusText } = res;
-        if (statusText !== "OK") {
-          throw new Error(statusText);
-        }
+        await this.fetchCurrentUser();
 
-        const currentUserIdForCheck = data.id;
+        const currentUserIdForCheck = this.currentUser.id;
         if (currentUserIdForCheck === this.userObj.UserId) {
           // 判斷this.userObj.UserId如果是當前使用者要做下面的事
 
@@ -156,15 +159,19 @@ export default {
         this.userObj = { ...this.userObj, FollowingsCount };
       }
     },
+    async fetchCurrentUser() {
+      const res = await currentUserAPI.getCurrentUser();
+      const { data, statusText } = res;
+      if (statusText !== "OK") {
+        throw new Error(statusText);
+      }
+      this.currentUser = { ...data };
+    },
     async updateCancel(followingId) {
       try {
-        const res = await currentUserAPI.getCurrentUser();
-        const { data, statusText } = res;
-        if (statusText !== "OK") {
-          throw new Error(statusText);
-        }
+        await this.fetchCurrentUser();
 
-        const currentUserIdForCheck = data.id;
+        const currentUserIdForCheck = this.currentUser.id;
         if (currentUserIdForCheck === this.userObj.UserId) {
           // 判斷this.userObj.UserId如果是當前使用者要做下面的事
 

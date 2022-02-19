@@ -1,9 +1,5 @@
 import usersAPI from "../../apis/usersAPI";
-import {
-  GET_ALL_USERS,
-  SET_ALL_USERS,
-  ADD_NOTIFICATION
-} from "../store-types";
+import { GET_ALL_USERS, SET_ALL_USERS, ADD_NOTIFICATION } from "../store-types";
 
 const state = {
   adminUsers: [],
@@ -12,15 +8,9 @@ const getters = {
   [GET_ALL_USERS]: (state) => state.adminUsers,
 };
 const actions = {
-  [SET_ALL_USERS]: async ({
-    commit,
-    dispatch
-  }) => {
+  [SET_ALL_USERS]: async ({ commit, dispatch }) => {
     try {
-      const {
-        data,
-        statusText
-      } = await usersAPI.all();
+      const { data, statusText } = await usersAPI.all();
       if (statusText !== "OK") {
         throw new Error(statusText);
       }

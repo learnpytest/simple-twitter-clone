@@ -53,7 +53,13 @@ import {
 
 Vue.use(VueRouter);
 
-const routes = [{
+const routes = [
+  {
+    path: "/community",
+    name: "community",
+    component: () => import("@/views/Community"),
+  },
+  {
     path: "/chat",
     name: "chat",
     component: () => import("@/views/PublicRoom"),
@@ -100,7 +106,8 @@ const routes = [{
     name: "user-followship",
 
     component: () => import("@/views/UserFollowship.vue"),
-    children: [{
+    children: [
+      {
         path: ":id/followers",
         name: "user-followers",
       },

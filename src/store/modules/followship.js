@@ -40,9 +40,7 @@ const getters = {
   [GET_CURRENT_USER_FOLLOWINGS]: (state) => state.currentUserFollowings,
 };
 const actions = {
-  [SET_CURRENT_USER_FOLLOWERS]: async ({
-    commit
-  }, userId) => {
+  [SET_CURRENT_USER_FOLLOWERS]: async ({ commit }, userId) => {
     // console.log("checkfollowers", vm.$router.params.id);
 
     // send api
@@ -52,10 +50,7 @@ const actions = {
     // const userId = vm.$route.params.id;
     try {
       const res = await followshipAPI.getFollowers(userId);
-      const {
-        statusText,
-        data
-      } = res;
+      const { statusText, data } = res;
       if (statusText !== "OK") {
         throw new Error(statusText);
       }
@@ -64,19 +59,14 @@ const actions = {
       console.log(err);
     }
   },
-  [SET_CURRENT_USER_FOLLOWINGS]: async ({
-    commit
-  }, userId) => {
+  [SET_CURRENT_USER_FOLLOWINGS]: async ({ commit }, userId) => {
     // send api
 
     // const res = await currentUserAPI.getCurrentUser();
     // const userId = res.data.id;
     try {
       const res = await followshipAPI.getFollowings(userId);
-      const {
-        statusText,
-        data
-      } = res;
+      const { statusText, data } = res;
       if (statusText !== "OK") {
         throw new Error(statusText);
       }
@@ -85,18 +75,10 @@ const actions = {
       console.log(err);
     }
   },
-  [POST_FOLLOWSHIP]: async ({
-    dispatch
-  }, {
-    followingId,
-    userId
-  }) => {
+  [POST_FOLLOWSHIP]: async ({ dispatch }, { followingId, userId }) => {
     try {
       const res = await followshipAPI.postFollowships(followingId);
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
       if (data.status !== "success" || statusText !== "OK") {
         throw new Error(data.message);
       }
@@ -117,17 +99,9 @@ const actions = {
       });
     }
   },
-  [DELETE_FOLLOWSHIP]: async ({
-    dispatch
-  }, {
-    followingId,
-    userId
-  }) => {
+  [DELETE_FOLLOWSHIP]: async ({ dispatch }, { followingId, userId }) => {
     const res = await followshipAPI.deleteFollowship(followingId);
-    const {
-      data,
-      statusText
-    } = res;
+    const { data, statusText } = res;
     if (data.status !== "success" || statusText !== "OK") {
       throw new Error(data.message);
     }
@@ -150,7 +124,6 @@ const mutations = {
   },
   [SET_CURRENT_USER_FOLLOWINGS]: async (state, currentUserFollowings) => {
     state.currentUserFollowings = [...currentUserFollowings];
-    console.log("setcurrentUserFollowings mutation", currentUserFollowings);
   },
 };
 

@@ -15,21 +15,30 @@
             <p>訊息</p>
           </div>
         </div>
-
-        <div class="active-users">
-          <div class="active-user" v-for="(item, key) in rooms" :key="key">
+        <Spinner v-if="isLoading" />
+        <div :class="['active-users']" v-else>
+          <div
+            :class="[
+              'active-user',
+              { hasUnreadStyle: hasUnread(item && item.roomId) },
+            ]"
+            v-for="(item, key) in onlyLatestMessageOfEachRoom"
+            :key="key"
+          >
             <router-link
-              class="reply-box"
+              v-if="item"
+              :class="['reply-box']"
               :to="{
                 name: 'private-room',
                 query: {
-                  to: selectOtherUser(item.users).userId,
+                  to:
+                    String(item.userId) !== String(currentUser.id)
+                      ? item.userId
+                      : item.receiverUserId,
                   room:
-                    selectOtherUser(item.users).userId < currentUser.id
-                      ? `${selectOtherUser(item.users).userId}${currentUser.id}`
-                      : `${currentUser.id}${
-                          selectOtherUser(item.users).userId
-                        }`,
+                    item.userId < item.receiverUserId
+                      ? `${item.userId}${item.receiverUserId}`
+                      : `${item.receiverUserId}${item.userId}`,
                 },
               }"
             >
@@ -38,9 +47,9 @@
                   <img
                     class="user-pic"
                     :src="
-                      selectOtherUser(item.users)
-                        ? selectOtherUser(item.users).avatar
-                        : '' | emptyImage
+                      String(item.userId) !== String(currentUser.id)
+                        ? item.avatar
+                        : item.receiverUserAvatar | emptyImage
                     "
                     alt=""
                   />
@@ -50,41 +59,32 @@
                     <div>
                       <p>
                         {{
-                          selectOtherUser(item.users)
-                            ? selectOtherUser(item.users).name
-                            : ""
+                          String(item.userId) !== String(currentUser.id)
+                            ? item.name
+                            : item.receiverUserName
                         }}
                       </p>
                       <p>
                         {{
-                          selectOtherUser(item.users)
-                            ? `@${selectOtherUser(item.users).account}`
-                            : ""
+                          String(item.userId) !== String(currentUser.id)
+                            ? item.account
+                            : item.receiverUserAccount
                         }}
                       </p>
                     </div>
 
                     <span class="reply-time">
-                      {{
-                        item.messages.length
-                          ? item.messages.slice(-1)[0].createdAt
-                          : "" | fromNow
-                      }}
+                      {{ item.createdAt | fromNow }}
                     </span>
                   </div>
-                  <div class="reply-text">
-                    <span
-                      v-if="
-                        item.messages.length &&
-                        item.messages.slice(-1)[0].userId === currentUser.id
-                      "
+                  <div :class="['reply-text']">
+                    <span v-if="String(item.userId) === String(currentUser.id)"
                       >您:</span
                     >
-                    {{
-                      item.messages.length
-                        ? item.messages.slice(-1)[0].message
-                        : ""
-                    }}
+
+                    <span v-else>{{ item.name }}:</span>
+
+                    {{ item.message }}
                   </div>
                 </div>
               </div>
@@ -92,94 +92,233 @@
           </div>
         </div>
       </div>
-      <div class="chat-room" v-chat-scroll="{ always: false, smooth: true }">
-        <PrivateChatRoom />
+      <!-- <div
+        class="chat-room"
+        id="chatRoom"
+        v-chat-scroll="{
+          always: false,
+          smooth: true,
+          scrollonremoved: true,
+          smoothonremoved: false,
+          notSmoothOnInit: true,
+        }"
+      >
+        <PrivateChatRoom :thisRoomUnread="thisRoomUnread" />
+      </div> -->
+      <div class="chat-room" id="chatRoom" @click="afterReadPrivateMessages">
+        <PrivateChatRoom :thisRoomUnread="thisRoomUnread" />
       </div>
     </div>
   </div>
 </template>
 <script>
+import socket from "../main";
+import messagesSocket from "../sockets/messagesSocket";
+
+import currentUserAPI from "@/apis/currentUserAPI";
+import usersAPI from "../apis/usersAPI";
+
+import Spinner from "@/components/Loaders/Spinner.vue";
 import Sidebar from "../modules/user/Sidebar.vue";
 import NewTweetModal from "../modules/user/NewTweetModal.vue";
 import PrivateChatRoom from "../modules/user/PrivateChatRoom.vue";
 
 import { mapGetters } from "vuex";
 
-import currentUserAPI from "@/apis/currentUserAPI";
-import usersAPI from "../apis/usersAPI";
-
 import { mixinEmptyImage, mixinFromNowFilters } from "@/utils/mixin";
 
-import socket from "../main";
+import errorHandler from "../utils/errorHandler";
 
 export default {
+  name: "PrivateRoom",
   mixins: [mixinEmptyImage, mixinFromNowFilters],
   components: {
     Sidebar,
     NewTweetModal,
     PrivateChatRoom,
+    Spinner,
   },
 
   sockets: {
-    connect() {
-      console.log("socket connected");
+    displayLatestPrivateRoomMessages(theLatestRoomMessagesArr) {
+      if (!theLatestRoomMessagesArr.length)
+        return this.$store.dispatch("ADD_NOTIFICATION", {
+          type: "info",
+          message: "還沒有任何對話訊息",
+        });
+
+      this.$store.dispatch(
+        "setOnlyLatestMessageOfEachRoom",
+        theLatestRoomMessagesArr
+      );
     },
-    disconnect() {
-      console.log("socket disconnected!");
+
+    displayNotification(data) {
+      this.$store.dispatch("SET_PRIVATE_CHAT_NOTIFICATION", data);
     },
-    setOnlyJoinedRooms(leaveOnlyJoinedRooms) {
-      this.$store.dispatch("setRoomsState", leaveOnlyJoinedRooms);
-      this.getRooms();
+    displayAllUnreadPrivateMessages(myAllUnreadPrivateMessages) {
+      this.myAllUnreadPrivateMessages = myAllUnreadPrivateMessages;
+    },
+
+    privateMessagesThisRoomAddOne(roomId) {
+      this.myAllUnreadPrivateMessages = this.myAllUnreadPrivateMessages.map(
+        (msg) =>
+          msg.roomId === roomId ? { ...msg, unread: msg.unread + 1 } : msg
+      );
+      this.thisRoomUnread += 1;
     },
   },
   data() {
     return {
+      isLoading: false,
       showModal: false,
       showReplyModal: false,
       currentUser: {},
       otherUser: {},
-      rooms: {},
+      myAllUnreadPrivateMessages: [],
+      thisRoomUnread: 0,
     };
   },
 
-  async created() {
-    await this.fetchData();
-    await this.joinPrivateRoom();
-  },
-  computed: {
-    ...mapGetters({
-      getRoomsState: "getRooms",
-    }),
+  mounted() {
+    const thisEl = document.querySelector("#chatRoom");
+    thisEl.scrollTop + thisEl.clientHeight + this.thisRoomUnread * 50;
+    thisEl.addEventListener("scroll", () => {
+      thisEl.scrollTop + thisEl.clientHeight + 50 >= thisEl.scrollHeight;
+    });
   },
   async beforeRouteUpdate(to, from, next) {
-    await this.fetchData();
+    try {
+      await this.fetchCurrentUser();
+      // 通知 socket server，增加一個新的使用者進入私人聊天室，不論是否指定聊天室的 id
+      await messagesSocket.emitDisplayLatestPrivateRoomMessages(
+        this.currentUser
+      );
 
-    await this.joinPrivateRoom();
-    next();
+      // 進入元件、路由改變要取得所有未讀資料
+      await socket.emit("getAllUnreadPrivateMessages", this.currentUser.id);
+
+      if (!to.query.room) {
+        this.$store.dispatch("CLEAR_ONE_ROOM_MESSAGES");
+        return next();
+      }
+      // 通知 socket server，增加一個使用者進入私人聊天室，指定聊天室 id，確認這個聊天是是否已經建立，如果已經建立，並且已經有聊天訊息將歷史訊息，給前端資料顯示指定聊天室的訊息
+      await this.fetchOtherUser(to.query.to);
+
+      await messagesSocket.emitDisplayOneRoomMessages(
+        to.query.room,
+        this.currentUser,
+        this.otherUser
+      );
+      next();
+    } catch (err) {
+      errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
+      next(err);
+    }
+  },
+  async created() {
+    try {
+      const { room, to } = this.$route.query;
+      await this.fetchCurrentUser();
+      // 通知 socket server，增加一個使用者進入私人聊天室，不論是否指定聊天室 id，給前端資料顯示最新一則訊息
+      await messagesSocket.emitDisplayLatestPrivateRoomMessages(
+        this.currentUser
+      );
+
+      // 進入元件、路由改變要取得所有未讀資料
+      await socket.emit("getAllUnreadPrivateMessages", this.currentUser.id);
+
+      // 私人訊息標示已讀
+      if (!this.$route.query.room) {
+        this.$store.dispatch("CLEAR_ONE_ROOM_MESSAGES");
+        return;
+      }
+
+      await this.fetchOtherUser(to);
+      // 通知 socket server，增加一個使用者進入私人聊天室，指定聊天室 id，確認這個聊天是是否已經建立，如果已經建立，並且已經有聊天訊息將歷史訊息，給前端資料顯示指定聊天室的訊息
+      await messagesSocket.emitDisplayOneRoomMessages(
+        room,
+        this.currentUser,
+        this.otherUser
+      );
+    } catch (err) {
+      this.isLoading = false;
+
+      errorHandler.generalErrorHandler(err)(this);
+    }
+  },
+  computed: {
+    hasUnread() {
+      return (roomId) => {
+        if (!this.myAllUnreadPrivateMessages.length) return false;
+        const found = this.myAllUnreadPrivateMessages
+          .filter((msg) => msg)
+          .find((msg) => msg.roomId === roomId);
+        return found && found.unread > 0;
+      };
+    },
+    ...mapGetters({
+      onlyLatestMessageOfEachRoom: "getOnlyLatestMessageOfEachRoom",
+    }),
+  },
+  watch: {
+    async $route() {
+      this.getThisRoomUnread(this.myAllUnreadPrivateMessages);
+    },
+    myAllUnreadPrivateMessages: {
+      handler(value) {
+        this.getThisRoomUnread(value);
+        console.log("執行卷軸向下");
+        const thisEl = document.querySelector("#chatRoom");
+        if (!thisEl) return;
+        thisEl.scrollTop =
+          thisEl.scrollHeight - this.thisRoomUnread * 11.5 - 50;
+
+        // thisEl.addEventListener("scroll", () => {
+        // thisEl.scrollTop + thisEl.clientHeight + 50 >= thisEl.scrollHeight
+        // });
+      },
+    },
+    deep: true,
   },
   methods: {
-    selectOtherUser(users) {
-      return users.filter((user) => user.id !== this.currentUser.id)[0];
+    getThisRoomUnread(value) {
+      if (!value.length) return;
+      const found = value
+        .filter((msg) => msg)
+        .find((msg) => msg.roomId === this.$route.query.room);
+      if (found) {
+        this.thisRoomUnread = found.unread;
+      }
     },
-    getRooms() {
-      this.rooms = this.getRoomsState;
+    makeThisRoomUnreadZeroOnView() {
+      if (!this.myAllUnreadPrivateMessages.length) return;
+      this.myAllUnreadPrivateMessages = this.myAllUnreadPrivateMessages
+        .filter((msg) => msg)
+        .map((msg) =>
+          msg.roomId === this.$route.query.room ? { ...msg, unread: 0 } : msg
+        );
     },
-    joinPrivateRoom() {
-      const { room } = this.$route.query;
-
-      socket.emit("joinPrivateRoom", {
-        room,
-        selfObj: { ...this.currentUser, userId: this.currentUser.id },
-        otherUserObj: { ...this.otherUser, userId: this.otherUser.UserId },
+    afterReadPrivateMessages() {
+      if (!this.$route.query.room) return;
+      // 通知資料庫
+      socket.emit("afterReadPrivateMessageOfThisRoom", {
+        roomId: this.$route.query.room,
+        currentUserId: this.currentUser.id,
+        substractNumber: this.thisRoomUnread,
+        type: "decrement",
       });
-    },
-    async fetchData() {
-      await this.fetchCurrentUser();
-      await this.fetchOtherUser();
-    },
 
+      // 修改畫面
+      // Sidebar總數
+      this.$store.dispatch("SET_SUM_OF_UNREAD_PRIVATE_MESSAGES", 0);
+      // 當前頁面
+      this.thisRoomUnread = 0;
+      this.makeThisRoomUnreadZeroOnView();
+    },
     async fetchCurrentUser() {
       try {
+        this.isLoading = true;
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
 
@@ -187,19 +326,22 @@ export default {
           throw new Error(statusText);
         }
         this.currentUser = { ...data };
+        this.isLoading = false;
       } catch (err) {
         console.log(err);
       }
     },
-    async fetchOtherUser() {
+    async fetchOtherUser(userId2) {
       try {
-        const res = await usersAPI.getUser(this.$route.query.to);
+        this.isLoading = true;
+        const res = await usersAPI.getUser(userId2);
         const { data, statusText } = res;
 
         if (statusText !== "OK") {
           throw new Error(statusText);
         }
         this.otherUser = { ...data };
+        this.isLoading = false;
       } catch (err) {
         console.log(err);
       }
@@ -222,10 +364,6 @@ export default {
         this.showReplyModal = false;
       }
     },
-    clickButton: function (data) {
-      // $socket is socket.io-client instance
-      this.$socket.emit("emit_method", data);
-    },
   },
 };
 </script>
@@ -243,6 +381,7 @@ export default {
 .active-user {
   display: flex;
   padding: 15px 10px 15px 10px;
+  margin-bottom: 0.4rem;
   font-size: 14px;
   border-bottom: 1px solid $gray-75;
   cursor: pointer;
@@ -263,6 +402,10 @@ export default {
   }
   .user-id {
     color: $gray-600;
+  }
+  &:hover {
+    cursor: pointer;
+    background-color: darken(#e6ecf0, 10%);
   }
 }
 
@@ -299,6 +442,7 @@ export default {
 .reply-box {
   width: 100%;
   margin: 10px 0;
+  color: $gray-900;
 }
 
 .reply-text-info {
@@ -306,7 +450,7 @@ export default {
 }
 
 .reply-text {
-  background-color: $gray-50;
+  // background-color: $gray-50;
   padding: 0.5rem 0;
   color: $gray-600;
 }
@@ -352,5 +496,8 @@ export default {
   img:hover {
     cursor: pointer;
   }
+}
+.hasUnreadStyle {
+  background-color: var(--g-75);
 }
 </style>

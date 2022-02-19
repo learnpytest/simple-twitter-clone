@@ -1,6 +1,4 @@
-import {
-  apiHelper
-} from "../apis/apiHelper";
+import { apiHelper } from "../apis/apiHelper";
 
 export default {
   all() {
@@ -18,10 +16,7 @@ export default {
   getUserLikes(userId) {
     return apiHelper.get(`/users/${userId}/likes`);
   },
-  putUserProfile({
-    userId,
-    formData
-  }) {
+  putUserProfile({ userId, formData }) {
     return apiHelper.put(`/users/${userId}`, formData);
   },
 };
