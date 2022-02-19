@@ -1,98 +1,143 @@
 ﻿<template>
-  <div class="chat-room-wrapper">
-    <div class="header">
-      <div class="header-info">
-        <p v-if="prompt">{{ prompt }}</p>
+  <div>
+    <Spinner v-if="isLoading" />
 
-        <p>{{ otherUser.account }}</p>
+    <div class="chat-room-wrapper" v-else>
+      <div class="header">
+        <div class="header-info">
+          <p v-if="isLoading">載入中...</p>
+          <p v-else-if="otherUser.name">
+            {{ `${otherUser.name} @${otherUser.account}` }}
+          </p>
+          <p v-else>
+            {{ "請選取聊天對象" }}
+          </p>
+        </div>
       </div>
-    </div>
-    <div id="chat-wrapper">
-      <div
-        class="chat-wrapper"
-        v-for="(item, index) in thisRoom.messages"
-        :key="index"
-      >
-        <div class="reply-box" v-if="item.account !== currentUser.account">
-          <div class="reply-text-info bottom-align">
-            <div class="user-info">
-              <img class="user-pic" :src="item.avatar | emptyImage" alt="" />
-              <div class="user-name">{{ item.name }}</div>
-            </div>
-            <div class="reply-text-time">
-              <div class="reply-text">{{ item.message }}</div>
-            </div>
+      <div id="chat-wrapper" v-if="$route.query.room && otherUser.name">
+        <div
+          class="chat-wrapper"
+          v-for="(item, index) in getOneRoomMessages.messages"
+          :key="index"
+        >
+          <div
+            class="online-box center"
+            v-if="index === getOneRoomMessages.messages.length - thisRoomUnread"
+          >
+            <span class="online-text">以下為未讀訊息</span>
           </div>
-          <p class="reply-time">{{ item.createdAt | fromNow }}</p>
-        </div>
+          <div class="reply-box" v-if="item.account !== currentUser.account">
+            <div class="reply-text-info bottom-align">
+              <div class="user-info">
+                <img class="user-pic" :src="item.avatar | emptyImage" alt="" />
+                <div class="user-name">{{ item.name }}</div>
+              </div>
+              <div class="reply-text-time">
+                <div class="reply-text">
+                  {{ item.message }}
+                </div>
+              </div>
+            </div>
+            <p class="reply-time">{{ item.createdAt | fromNow }}</p>
+          </div>
 
-        <div v-if="item.account === currentUser.account" class="sent-box right">
-          <div class="sent-text">{{ item.message }}</div>
-          <p class="sent-time">{{ item.createdAt | fromNow }}</p>
+          <div
+            v-if="item.account === currentUser.account"
+            class="sent-box right"
+          >
+            <div class="sent-text">{{ item.message }}</div>
+
+            <span v-show="item.isLoading" class="online-text"
+              >訊息未傳送...</span
+            >
+            <p class="sent-time">{{ item.createdAt | fromNow }}</p>
+          </div>
+        </div>
+        <div class="chat-wrapper">
+          <div class="online-box center">
+            <span class="online-text" v-show="typing">正在輸入訊息...</span>
+          </div>
         </div>
       </div>
-      <div class="chat-wrapper">
-        <div class="online-box center">
-          <span class="online-text" v-show="typing">正在輸入訊息...</span>
-        </div>
+      <div class="chat-field">
+        <input
+          type="text"
+          id="sendtxt"
+          placeholder="輸入訊息..."
+          v-model="temp.message"
+          @keyup.enter="sendMessage"
+        />
+        <button class="sendBtn" @click.stop.prevent="sendMessage">
+          <img src="./../../assets/images/send_button.png" />
+        </button>
       </div>
-    </div>
-    <div class="chat-field">
-      <input
-        type="text"
-        id="sendtxt"
-        placeholder="輸入訊息..."
-        v-model="temp.message"
-        @keyup.enter="sendMessage"
-      />
-      <button class="sendBtn" @click="sendMessage">
-        <img src="./../../assets/images/send_button.png" />
-      </button>
     </div>
   </div>
 </template>
 <script>
 import socket from "../../main";
+
+import Spinner from "@/components/Loaders/Spinner.vue";
+
 import { mapGetters } from "vuex";
 import currentUserAPI from "@/apis/currentUserAPI";
 import usersAPI from "@/apis/usersAPI";
+
+import errorHandler from "../../utils/errorHandler";
 
 import {
   mixinEmptyImage,
   mixinFormatMessage,
   mixinFromNowFilters,
   mixinFormatGroupMessage,
+  mixinHandleCommunityNotification,
+  mixinHandleUnreadNotification,
 } from "@/utils/mixin.js";
 
 export default {
   name: "ChatRooom",
+  components: { Spinner },
   mixins: [
     mixinEmptyImage,
     mixinFormatMessage,
     mixinFromNowFilters,
     mixinFormatGroupMessage,
+    mixinHandleCommunityNotification,
+    mixinHandleUnreadNotification,
   ],
   sockets: {
+    displayNotificationForEmptyData() {
+      return this.$store.dispatch("ADD_NOTIFICATION", {
+        type: "info",
+        message: "還沒有任何對話訊息",
+      });
+    },
     users: function (data) {
       this.users = data;
     },
-    allRoomMessages: function ({ room, data }) {
-      const { users, messages } = data;
-      this.$store.state.rooms[room] = {
-        users,
-        messages,
-      };
-      this.fetchRoomState();
+    displayOneRoomMessages({ roomId, messages }) {
+      this.$store.dispatch("setOneRoomMessages", { roomId, messages });
     },
-    appendRoomMessage: function ({ room, message }) {
-      this.appendRoomMessage(room, message);
-      this.fetchRoomState();
+    appendRoomMessage({ roomId, oneNewMessage }) {
+      // 增加一個訊息在訊息框
+      this.appendRoomMessage(roomId, oneNewMessage);
+
+      // 增加一個對方傳來的 the Latest Private Room Messages 訊息在最新訊息欄位
+      this.$store.dispatch(
+        "setOneNewMsgToLatestMessageOfEachRoom",
+        oneNewMessage
+      );
     },
     typing: function () {
       this.typing = true;
     },
     stopTyping: function () {
       this.typing = false;
+    },
+  },
+  props: {
+    thisRoomUnread: {
+      type: Number,
     },
   },
   data() {
@@ -103,31 +148,28 @@ export default {
       room: "",
       temp: {
         message: "",
-        name: "",
       },
       currentUser: {},
       otherUser: {},
-
       thisRoom: {
         users: [],
         messages: [],
       },
-      prompt: "",
+      isLoading: true,
     };
   },
-  created() {
-    this.fetchCurrentUser();
-    this.fetchOtherUser();
+  async created() {
+    try {
+      this.isLoading = true;
+      await this.fetchCurrentUser();
+      await this.fetchOtherUser();
 
-    const { room } = this.$route.query;
-
-    if (!room) {
-      this.prompt = "選取聊天對象";
-      return;
+      const { room } = this.$route.query;
+      this.room = room || "";
+      this.isLoading = false;
+    } catch (err) {
+      errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
     }
-    this.prompt = "";
-    this.room = room;
-    this.fetchRoomState();
   },
 
   methods: {
@@ -135,20 +177,57 @@ export default {
       // emit事件給server
       e.target.focus();
       if (!this.temp.message.trim().length) return;
-      this.temp.name = this.currentUser.name;
-      socket.emit(
-        "roomMessage",
-        this.formatGroupMessage(this.temp.message, 0, this.$route.query.room)
-      );
+      const senderText = this.temp.message;
 
-      this.appendRoomMessage(
-        this.$route.query.room,
-        this.formatGroupMessage(this.temp.message, 0, this.$route.query.room)
-      );
+      try {
+        const oneNewRoomMessage = this.formatGroupMessage(
+          this.temp.message,
+          0,
+          this.$route.query.room,
+          this.currentUser,
+          this.otherUser
+        );
 
-      this.fetchRoomState();
+        // this just append room messages on frontend instead of modifying database so that user can see update once it's sent
+        oneNewRoomMessage.isLoading = true;
+        this.appendRoomMessage(this.$route.query.room, oneNewRoomMessage);
+        socket.emit("roomMessage", oneNewRoomMessage, (data) => {
+          if (data === "success") {
+            // 給對方新的通知增加一個，不通知訂閱人
+            this.socketSendCommunityOneNotification(
+              "7",
+              this.currentUser,
+              this.otherUser,
+              senderText
+            );
+
+            // // 未讀數目
+            this.socketAfterPrivateMessageSend(
+              this.otherUser.UserId,
+              "2",
+              1,
+              this.currentUser.id,
+              this.$route.query.room
+            );
+
+            // 修改這裡，在回傳appendMessage以後再增加在畫面上
+            // 增加一個 the Latest Private Room Messages 在前端的畫面上
+            this.$store.dispatch(
+              "setOneNewMsgToLatestMessageOfEachRoom",
+              oneNewRoomMessage
+            );
+
+            oneNewRoomMessage.isLoading = false;
+          }
+        });
+      } catch (err) {
+        errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
+      }
+
       this.temp.message = "";
-      this.temp.name = "";
+    },
+    appendRoomMessage(roomId, oneNewMessage) {
+      this.$store.dispatch("appendRoomMessage", { roomId, oneNewMessage });
     },
     async fetchOtherUser() {
       try {
@@ -160,7 +239,7 @@ export default {
         }
         this.otherUser = { ...data };
       } catch (err) {
-        console.log(err);
+        errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
       }
     },
     async fetchCurrentUser() {
@@ -176,21 +255,11 @@ export default {
         console.log(err);
       }
     },
-    fetchRoomState() {
-      const roomState = this.getRoomState(this.room);
-      this.thisRoom = {
-        messages: roomState ? [...roomState.messages] : [],
-        users: roomState ? [...roomState.users] : [],
-      };
-    },
-    appendRoomMessage(room, message) {
-      this.$store.dispatch("appendRoomMessage", { room, message });
-    },
   },
 
   computed: {
     ...mapGetters({
-      getRoomState: "getRoomState",
+      getOneRoomMessages: "getOneRoomMessages",
     }),
   },
 
@@ -207,7 +276,6 @@ export default {
 
       const { room } = this.$route.query;
       this.room = room;
-      this.fetchRoomState();
     },
   },
 };

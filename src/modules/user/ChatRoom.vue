@@ -12,16 +12,22 @@
         v-for="(item, index) in allMessages"
         :key="index"
       >
-        <div class="online-box center" v-if="item.type === 1">
+        <div
+          class="online-box center"
+          v-if="+item.type === 1 && item.account !== currentUser.account"
+        >
           <span class="online-text">{{ item.name }} 上線</span>
         </div>
-        <div class="online-box center" v-else-if="item.type === -1">
+        <div
+          class="online-box center"
+          v-else-if="+item.type === -1 && item.account !== currentUser.account"
+        >
           <span class="online-text">{{ item.name }} 下線</span>
         </div>
 
         <div
           class="reply-box"
-          v-if="item.message && item.name !== currentUser.name"
+          v-if="item.message && item.account !== currentUser.account"
         >
           <div class="reply-text-info bottom-align">
             <div class="user-info">
@@ -29,14 +35,14 @@
               <div class="user-name">{{ item.name }}</div>
             </div>
             <div class="reply-text-time">
-              <div class="reply-text">{{ item.message }}</div>
+              <div class="reply-text">{{ item.message && item.message }}</div>
             </div>
           </div>
           <p class="reply-time">{{ item.createdAt | fromNow }}</p>
         </div>
 
         <div
-          v-if="item.message && item.name === currentUser.name"
+          v-if="item.message && item.account === currentUser.account"
           class="sent-box right"
         >
           <div class="sent-text">{{ item.message }}</div>
@@ -71,11 +77,17 @@ import {
   mixinEmptyImage,
   mixinFormatMessage,
   mixinFromNowFilters,
+  mixinHandleUnreadNotification,
 } from "@/utils/mixin.js";
 
 export default {
   name: "ChatRooom",
-  mixins: [mixinEmptyImage, mixinFormatMessage, mixinFromNowFilters],
+  mixins: [
+    mixinEmptyImage,
+    mixinFormatMessage,
+    mixinFromNowFilters,
+    mixinHandleUnreadNotification,
+  ],
   sockets: {
     users: function (data) {
       this.users = data;
@@ -106,10 +118,18 @@ export default {
       // emit事件給server
       e.target.focus();
       if (!this.temp.message.trim().length) return;
-      this.temp.name = this.currentUser.name;
-      socket.emit("message", this.formatMessage(this.temp.message, 0));
+      this.temp.name = this.currentUser.account;
+      // 修改message資料庫資料
+      socket.emit(
+        "message",
+        this.formatMessage(this.temp.message, 0, this.currentUser)
+      );
+      // 畫面
       this.temp.message = "";
       this.temp.name = "";
+
+      // 修改資料庫對方未讀資料，再修改線上使用者畫面
+      socket.emit("afterPublicMessageSend", this.currentUser.id);
     },
     async fetchCurrentUser() {
       try {

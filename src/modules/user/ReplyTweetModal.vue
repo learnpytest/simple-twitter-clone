@@ -1,7 +1,7 @@
 ﻿<template>
   <form
     class="new-tweet-modal"
-    @click.stop.prevent="handleCommentSubmit(tweet.TweetId)"
+    @click.stop.prevent="handleCommentSubmit(tweet.TweetId, tweet)"
   >
     <div class="new-text-box">
       <div class="close-btn">
@@ -71,14 +71,23 @@
 </template>
 <script>
 // need to take targeted user
+import currentUserAPI from "@/apis/currentUserAPI";
+import tweetsAPI from "./../../apis/tweets";
+
 import { mapGetters } from "vuex";
 import { GET_IS_PROCESSING } from "../../store/store-types";
-import { mixinEmptyImage, mixinFromNowFilters } from "../../utils/mixin";
-import tweetsAPI from "./../../apis/tweets";
-import currentUserAPI from "@/apis/currentUserAPI";
+import {
+  mixinEmptyImage,
+  mixinFromNowFilters,
+  mixinHandleCommunityNotification,
+} from "../../utils/mixin";
 export default {
   name: "ReplyTweetModal",
-  mixins: [mixinEmptyImage, mixinFromNowFilters],
+  mixins: [
+    mixinEmptyImage,
+    mixinFromNowFilters,
+    mixinHandleCommunityNotification,
+  ],
   props: {
     initialShowReplyModal: {
       type: Boolean,
@@ -118,12 +127,12 @@ export default {
         console.log("error", error);
       }
     },
-    async handleCommentSubmit(tweetId) {
+    async handleCommentSubmit(tweetId, tweet) {
       if (!this.text.length) {
         this.submitEmptyField = true;
-
         return;
       }
+
       if (this.text.length > 140) {
         return;
       }
@@ -143,6 +152,16 @@ export default {
           this.$router.push(`/usermain`);
           return;
         }
+
+        // 通知訂閱人，新增一個回覆，type 6
+        this.socketSendCommunityOneNotification(
+          "6",
+          this.currentUser,
+          tweet.User,
+          this.text,
+          tweet.TweetId
+        );
+
         this.$router.push(`/reply/${tweetId}`);
       } catch (err) {
         console.log(err);

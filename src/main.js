@@ -4,6 +4,8 @@ import router from "./router";
 // import './assets/scss/reset.scss'
 import store from "./store";
 
+import currentUserAPi from "./apis/currentUserAPI";
+
 import VueChatScroll from "vue-chat-scroll";
 
 import VueSocketIO from "vue-socket.io";
@@ -24,23 +26,17 @@ const socketOptions = {
   transports: ["websocket", "polling"],
 };
 
-// const socket = io("http://localhost:3000", socketOptions);
+const socket = io("http://localhost:5000", socketOptions);
 
-const socket = io(
-  "https://8bf9-2001-b011-e-36f4-7cff-6f21-96bf-3e60.ngrok.io",
-  socketOptions
-);
+// const socket = io(
+//   "https://8bf9-2001-b011-e-36f4-7cff-6f21-96bf-3e60.ngrok.io",
+//   socketOptions
+// );
 
 // const socket = io(
 //   "https://twitter-llrs-chatroom.herokuapp.com/",
 //   socketOptions
 // );
-
-// socket.onAny((event, ...args) => {
-//   console.log("main.js收到的資訊", event, args);
-// });
-
-// socket.emit("message", "Hello user");
 
 Vue.use(
   new VueSocketIO({
@@ -54,12 +50,12 @@ Vue.use(
   })
 );
 
-Vue.directive("focus", {
-  inserted: function (el) {
-    el.focus();
-    console.log(el);
-  },
-});
+// Vue.directive("focus", {
+//   inserted: function (el) {
+//     el.focus();
+//     console.log(el);
+//   },
+// });
 
 Vue.use(VueChatScroll);
 
@@ -67,25 +63,35 @@ export const vm = new Vue({
   router,
   store,
   sockets: {
-    connecting() {
-      console.log("main.js connecting");
-    },
-    disconnect() {
-      console.log("main.js Disconnect");
-    },
-    connect_failed() {
-      console.log("main.js connect failed");
-    },
-    connect() {
+    async connect() {
       console.log("main.js connected in main.js");
+      const res = await currentUserAPi.getCurrentUser();
+      const {
+        data
+      } = res;
+      socket.emit("socketConnected", data);
     },
 
-    allMessages: function (data) {
-      store.state.allMessages = data;
+    allMessages: (messagesArr) => {
+      store.state.allMessages = [...messagesArr];
     },
 
-    allUsers: function (data) {
+    allUsers: (data) => {
       store.state.allUsers = [...data];
+    },
+
+    userArrived: (newMessage) => {
+      socket.emit("userArrived", newMessage);
+    },
+    socketMessage: (noti) => {
+      store.dispatch("ADD_NOTIFICATION", {
+        ...noti,
+      });
+    },
+    socketErrorMessage: (noti) => {
+      store.dispatch("ADD_NOTIFICATION", {
+        ...noti,
+      });
     },
   },
   render: (h) => h(App),

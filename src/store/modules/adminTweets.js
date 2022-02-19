@@ -20,15 +20,9 @@ const getters = {
   [GET_UNFILTERED_TWEETS_FOR_ADMIN]: (state) => state.unFilteredTweetsForAdmin,
 };
 const actions = {
-  [SET_UNFILTERED_TWEETS_FOR_ADMIN]: async ({
-    commit,
-    dispatch
-  }) => {
+  [SET_UNFILTERED_TWEETS_FOR_ADMIN]: async ({ commit, dispatch }) => {
     try {
-      const {
-        data,
-        statusText
-      } = await tweets.unFilteredForAdmin();
+      const { data, statusText } = await tweets.unFilteredForAdmin();
       if (statusText !== "OK") {
         throw new Error(statusText);
       }
@@ -40,27 +34,18 @@ const actions = {
       });
     }
   },
-  [VERIFY_DELETE_TWEET]: async ({
-    dispatch,
-    commit
-  }, tweetId) => {
+  [VERIFY_DELETE_TWEET]: async ({ dispatch, commit }, tweetId) => {
     dispatch(ADD_NOTIFICATION_CONFIRM, {
       type: "confirm",
       message: "確定要刪除推文嗎?",
     });
     commit(SET_TWEET_ID_TO_DELETE, tweetId);
   },
-  [DELETE_TWEET]: async ({
-    dispatch,
-    state,
-    commit
-  }) => {
+  [DELETE_TWEET]: async ({ dispatch, state, commit }) => {
     // todo after create new twee to test delete tweet in case of safety
     const tweetIdToDelete = state.tweetIdToDelete;
     try {
-      const {
-        statusText
-      } = await tweets.delete(tweetIdToDelete);
+      const { statusText } = await tweets.delete(tweetIdToDelete);
       if (statusText !== "OK") {
         throw new Error(statusText);
       }
@@ -74,9 +59,7 @@ const actions = {
       });
     }
   },
-  [CANCEL_DELETE]: async ({
-    commit
-  }) => {
+  [CANCEL_DELETE]: async ({ commit }) => {
     commit(REMOVE_NOTIFICATION);
     commit(CANCEL_DELETE);
   },

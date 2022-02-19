@@ -35,7 +35,14 @@
           </div>
         </div>
       </div>
-      <div class="chat-room" v-chat-scroll="{ always: false, smooth: true }">
+      <div
+        class="chat-room"
+        :v-chat-scroll="{
+          always: false,
+          smooth: true,
+        }"
+        @click.stop.prevent="makeUnreadPublicMessageZero"
+      >
         <ChatRoom />
       </div>
     </div>
@@ -49,8 +56,6 @@ import ChatRoom from "../modules/user/ChatRoom.vue";
 import currentUserAPI from "@/apis/currentUserAPI";
 
 import { mixinEmptyImage } from "@/utils/mixin";
-
-// import io from "socket.io-client";
 
 import socket from "../main";
 
@@ -67,30 +72,22 @@ export default {
     socket.emit("leaved", this.currentUser);
     next();
   },
-
-  sockets: {
-    connect() {
-      console.log("socket connected");
-    },
-    disconnect() {
-      console.log("socket disconnected!");
-    },
-  },
   data() {
     return {
       showModal: false,
       showReplyModal: false,
-      userName: "Louis",
       currentUser: {},
     };
   },
 
-  created() {
-    window.onbeforeunload = () => {
-      socket.emit("leaved", this.currentUser);
-    };
+  async created() {
+    // window.onbeforeunload = () => {
+    //   socket.emit("leaved", this.currentUser);
+    // };
 
-    this.fetchCurrentUser();
+    await this.fetchCurrentUserAndEmitNewUser();
+
+    this.makeUnreadPublicMessageZero();
   },
   computed: {
     ...mapState({
@@ -99,11 +96,16 @@ export default {
   },
 
   methods: {
-    newUser() {
-      socket.emit("user", { ...this.currentUser });
+    makeUnreadPublicMessageZero() {
+      // 修改畫面，Sidebar的公開聊天室未讀歸零
+      this.$store.dispatch("CLEAR_COMMUNITY_NOTIFICATION_UNREAD", {
+        currentUserId: this.currentUser.id,
+        types: ["3"],
+      });
+      // 修改資料庫自己的unread notification public message 歸零
+      socket.emit("afterReadPublicMessage", this.currentUser.id);
     },
-
-    async fetchCurrentUser() {
+    async fetchCurrentUserAndEmitNewUser() {
       try {
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
@@ -113,11 +115,12 @@ export default {
         }
         this.currentUser = { ...data };
         this.newUser();
-
-        // socket.emit("joined", this.currentUser);
       } catch (err) {
         console.log(err);
       }
+    },
+    newUser() {
+      socket.emit("user", { ...this.currentUser });
     },
 
     modalToggle() {

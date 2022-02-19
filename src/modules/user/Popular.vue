@@ -17,7 +17,7 @@
         <button
           class="following-btn"
           :class="{ disabled: currentUserId === user.UserId }"
-          @click.stop.prevent="cancel(user.UserId)"
+          @click.stop.prevent="cancel(user.UserId, user)"
           :disabled="currentUserId === user.UserId"
         >
           正在跟隨
@@ -27,7 +27,7 @@
         <button
           class="follower-btn"
           :class="{ disabled: currentUserId === user.UserId }"
-          @click.stop.prevent="post(user.UserId)"
+          @click.stop.prevent="post(user.UserId, user)"
           :disabled="currentUserId === user.UserId"
         >
           跟隨
@@ -38,7 +38,10 @@
 </template>
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { mixinEmptyImage } from "../../utils/mixin";
+import {
+  mixinEmptyImage,
+  mixinHandleCommunityNotification,
+} from "../../utils/mixin";
 import currentUserAPI from "@/apis/currentUserAPI";
 
 import {
@@ -49,10 +52,11 @@ import {
 } from "../../store/store-types";
 export default {
   name: "Popular",
-  mixins: [mixinEmptyImage],
+  mixins: [mixinEmptyImage, mixinHandleCommunityNotification],
   data() {
     return {
       currentUserId: "",
+      currentUser: {},
     };
   },
   created() {
@@ -60,15 +64,21 @@ export default {
     this.getCurrentUser();
   },
   methods: {
-    cancel(followingId) {
+    cancel(followingId, follower) {
       const userId = this.$route.params.id;
       this.cancelFollow({ followingId, userId });
       this.$emit("updateCancelView", followingId);
+
+      // 通知訂閱人，追蹤減少一個，type 4
+      this.socketSendCommunityOneNotification("4", this.currentUser, follower);
     },
-    post(followingId) {
+    post(followingId, follower) {
       const userId = this.$route.params.id;
       this.postFollowship({ followingId, userId });
       this.$emit("updateFollowView", followingId);
+
+      // 通知訂閱人，追蹤增加一個
+      this.socketSendCommunityOneNotification("3", this.currentUser, follower);
     },
     ...mapActions({
       setTopUsers: SET_TOP_USERS,
@@ -83,7 +93,7 @@ export default {
         if (statusText !== "OK") {
           throw new Error(statusText);
         }
-
+        this.currentUser = { ...data };
         this.currentUserId = data.id;
       } catch (err) {
         console.log(err);

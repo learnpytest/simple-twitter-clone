@@ -60,7 +60,7 @@ export default {
   min-width: fit-content;
   width: fit-content;
   margin: 0 auto;
-  
+
   @include grays(color, g-900);
 
   font-weight: var(--fw-bold);

@@ -1,6 +1,4 @@
-import {
-  apiHelper
-} from "../apis/apiHelper";
+import { apiHelper } from "../apis/apiHelper";
 
 export default {
   // 取得某使用者跟隨中的人

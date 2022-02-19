@@ -119,13 +119,6 @@ export default {
     };
   },
   created() {
-    // this.account = this.isSettingExistingAccount
-    //   ? this.getCurrentUser.account
-    //   : "";
-    // this.username = this.isSettingExistingAccount
-    //   ? this.getCurrentUser.name
-    //   : "";
-    // this.email = this.isSettingExistingAccount ? this.getCurrentUser.email : "";
     this.fetchData();
   },
   methods: {

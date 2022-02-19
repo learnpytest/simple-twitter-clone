@@ -1,6 +1,4 @@
-import {
-  apiHelper
-} from "../apis/apiHelper";
+import { apiHelper } from "../apis/apiHelper";
 
 export default {
   // 取得使用者like的推文

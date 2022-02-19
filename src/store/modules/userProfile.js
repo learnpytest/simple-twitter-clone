@@ -23,16 +23,10 @@ const getters = {
   [FETCH_CURRENT_USER]: (state) => state.currentUserProfile,
 };
 const actions = {
-  [RESET_CURRENT_USER_PROFILE]: async ({
-    commit,
-    dispatch
-  }) => {
+  [RESET_CURRENT_USER_PROFILE]: async ({ commit, dispatch }) => {
     // 將使用RESET_CURRENT_USER_PROFILE來驗證每一次轉址使用者是否仍有權限。需要設定router的beforeEach來監聽每一個轉址token有無變化
     try {
-      const {
-        data,
-        statusText
-      } = await currentUserAPI.getCurrentUser();
+      const { data, statusText } = await currentUserAPI.getCurrentUser();
       if (statusText !== "OK") throw new Error("無法取得現在使用者");
 
       commit(RESET_CURRENT_USER_PROFILE, data);
@@ -48,17 +42,12 @@ const actions = {
       return false;
     }
   },
-  [PUT_CURRENT_USER_PROFILE]: async ({
-    dispatch
-  }, payload) => {
+  [PUT_CURRENT_USER_PROFILE]: async ({ dispatch }, payload) => {
     try {
       dispatch(SET_IS_PROCESSING, true);
       const res = await usersAPI.putUserProfile(payload);
 
-      const {
-        data,
-        statusText
-      } = res;
+      const { data, statusText } = res;
       if (statusText !== "OK" || data.status !== "success") {
         throw new Error(data.message);
       }

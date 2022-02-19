@@ -1,93 +1,142 @@
 ﻿<template>
-  <div class="profile-wrapper">
-    <!-- 沒cover產生空圖 -->
-    <img :src="userObj.cover | emptyImage" alt="" class="background-pic" />
-    <div class="profile-pic">
-      <!-- 沒有上傳照片產生空圖 -->
-      <img id="avatar" :src="userObj.avatar | emptyImage" alt="" />
-      <button
-        @click="handleShowModalClick"
-        v-if="currentUserId === userObj.UserId"
-      >
-        編輯個人資料
-      </button>
-      <div class="other-user-btns" v-if="currentUserId !== userObj.UserId">
-        <router-link
-          class="msg-btn"
-          :to="{
-            name: 'private-room',
-            query: {
-              to: userObj.UserId,
-              room:
-                userObj.UserId < currentUserId
-                  ? `${userObj.UserId}${currentUserId}`
-                  : `${currentUserId}${userObj.UserId}`,
-            },
-          }"
+  <div>
+    <Spinner v-if="isLoading" />
+    <div class="profile-wrapper" v-else>
+      <!-- 沒cover產生空圖 -->
+      <img :src="userObj.cover | emptyImage" alt="" class="background-pic" />
+      <div class="profile-pic">
+        <!-- 沒有上傳照片產生空圖 -->
+        <img id="avatar" :src="userObj.avatar | emptyImage" alt="" />
+        <button
+          @click="handleShowModalClick"
+          v-if="currentUserId === userObj.UserId"
         >
-          <img
-            src="./../../assets/images/btn_messege.svg"
-            alt=""
-            class="msg-icon"
-          />
-        </router-link>
-        <div class="noti-btn">
-          <img
-            src="./../../assets/images/btn_noti.svg"
-            alt=""
-            class="msg-icon"
-          />
-        </div>
-        <div class="followship-btn">
-          <div class="follow-btn" v-if="userObj.isFollowed">
-            <button
-              class="following-btn"
-              @click.stop.prevent="cancel(userObj.UserId)"
-            >
-              正在跟隨
-            </button>
+          編輯個人資料
+        </button>
+        <div class="other-user-btns" v-if="currentUserId !== userObj.UserId">
+          <router-link
+            class="msg-btn"
+            :to="{
+              name: 'private-room',
+              query: {
+                to: userObj.UserId,
+                room:
+                  userObj.UserId < currentUserId
+                    ? `${userObj.UserId}${currentUserId}`
+                    : `${currentUserId}${userObj.UserId}`,
+              },
+            }"
+          >
+            <img
+              src="./../../assets/images/btn_messege.svg"
+              alt=""
+              class="msg-icon"
+            />
+          </router-link>
+          <div
+            class="noti-btn"
+            v-if="isSubscribingThisUser"
+            @click="cancelSubscribeUser"
+          >
+            <img
+              src="./../../assets/images/btn_noti_active.svg"
+              alt=""
+              class="msg-icon"
+            />
           </div>
-          <div class="follow-btn" v-else>
-            <button
-              class="follower-btn"
-              @click.stop.prevent="post(userObj.UserId)"
-            >
-              跟隨
-            </button>
+          <div class="noti-btn" v-else @click="subscribeUser">
+            <img
+              src="./../../assets/images/btn_noti.svg"
+              alt=""
+              class="msg-icon"
+            />
+          </div>
+          <div class="followship-btn">
+            <div class="follow-btn" v-if="userObj.isFollowed">
+              <button
+                class="following-btn"
+                @click.stop.prevent="cancel(userObj.UserId, userObj)"
+              >
+                正在跟隨
+              </button>
+            </div>
+            <div class="follow-btn" v-else>
+              <button
+                class="follower-btn"
+                @click.stop.prevent="post(userObj.UserId, userObj)"
+              >
+                跟隨
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="profile-details">
-      <p class="profile-name">{{ userObj.name }}</p>
-      <p class="profile-id">@{{ userObj.account }}</p>
-      <p class="description">
-        {{ userObj.introduction }}
-      </p>
-      <!-- todo api 沒有跟隨者與跟隨中使用者 -->
-      <router-link
-        :to="{ name: 'user-followings', params: { id: userObj.UserId } }"
-        class="profile-follow"
-        >{{ userObj.FollowingsCount }}個<span>跟隨中</span></router-link
-      >
-      <router-link
-        :to="{ name: 'user-followers', params: { id: userObj.UserId } }"
-        class="profile-follow"
-        >{{ userObj.FollowersCount }}位<span>跟隨者</span></router-link
-      >
+      <div class="profile-details">
+        <p class="profile-name">{{ userObj.name }}</p>
+        <p class="profile-id">@{{ userObj.account }}</p>
+        <p class="description">
+          {{ userObj.introduction }}
+        </p>
+        <!-- todo api 沒有跟隨者與跟隨中使用者 -->
+        <router-link
+          :to="{ name: 'user-followings', params: { id: userObj.UserId } }"
+          class="profile-follow"
+          >{{ userObj.FollowingsCount }}個<span>跟隨中</span></router-link
+        >
+        <router-link
+          :to="{ name: 'user-followers', params: { id: userObj.UserId } }"
+          class="profile-follow"
+          >{{ userObj.FollowersCount }}位<span>跟隨者</span></router-link
+        >
+      </div>
     </div>
   </div>
 </template>
 <script>
-import { mixinEmptyImage } from "@/utils/mixin";
+import socket from "../../main";
+
+import Spinner from "@/components/Loaders/Spinner.vue";
+
+import {
+  mixinEmptyImage,
+  mixinHandleCommunityNotification,
+} from "@/utils/mixin";
 import currentUserAPI from "@/apis/currentUserAPI";
 
 import { mapActions } from "vuex";
 
 import { POST_FOLLOWSHIP, DELETE_FOLLOWSHIP } from "@/store/store-types";
 
+import errorHandler from "../../utils/errorHandler";
+
 export default {
-  mixins: [mixinEmptyImage],
+  sockets: {
+    subscribingStatus(status) {
+      if (status === "success") {
+        this.$store.dispatch("ADD_NOTIFICATION", {
+          type: "success",
+          message: "已成功訂閱",
+        });
+        this.isSubscribingThisUser = true;
+      } else if (status === "isSubscribing") {
+        this.isSubscribingThisUser = true;
+      } else if (status === "isNotSubscribing") {
+        this.isSubscribingThisUser = false;
+      } else if (status === "cancelSubscribing") {
+        this.$store.dispatch("ADD_NOTIFICATION", {
+          type: "success",
+          message: "已取消訂閱",
+        });
+        this.isSubscribingThisUser = false;
+      } else if (status === "error") {
+        errorHandler.generalErrorHandler("伺服器忙碌中，請稍後再試")(this);
+      }
+    },
+  },
+  mixins: [mixinEmptyImage, mixinHandleCommunityNotification],
+  components: {
+    Spinner,
+  },
   props: {
     initialEditModal: {
       type: Boolean,
@@ -104,28 +153,59 @@ export default {
       text: "",
       userObj: {},
       currentUserId: "",
+      currentUser: {},
+      isSubscribingThisUser: false,
+      isLoading: true,
     };
   },
-  created() {
-    this.fetchData();
-    this.getCurrentUser();
+  async created() {
+    try {
+      this.isLoading = true;
+      await this.fetchData();
+      await this.getCurrentUser();
+      await socket.emit("getSubscribingStatus", {
+        subscriber: this.currentUser,
+        subscribed: this.userObj,
+      });
+      this.isLoading = false;
+    } catch (err) {
+      errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
+    }
   },
   methods: {
+    cancelSubscribeUser() {
+      socket.emit("cancelSubscribeUser", {
+        subscriber: this.currentUser,
+        subscribed: this.userObj,
+      });
+    },
+    subscribeUser() {
+      socket.emit("subscribeUser", {
+        subscriber: this.currentUser,
+        subscribed: this.userObj,
+      });
+    },
     fetchData() {
       this.showEditModal = this.initialEditModal;
       this.userObj = this.initialUserObj;
     },
-    cancel(followingId) {
+    cancel(followingId, follower) {
       this.cancelFollow({ followingId, userId: this.userObj.UserId });
 
       this.userObj.FollowingsCount = this.userObj.FollowingsCount - 1;
       this.userObj.isFollowed = false;
+
+      // 通知訂閱人，追蹤減少一個，type 4
+      this.socketSendCommunityOneNotification("4", this.currentUser, follower);
     },
-    post(followingId) {
+    post(followingId, follower) {
       this.postFollowship({ followingId, userId: this.userObj.UserId });
 
       this.userObj.FollowingsCount = this.userObj.FollowingsCount + 1;
       this.userObj.isFollowed = true;
+
+      // 通知訂閱人，追蹤增加一個，type 3
+      this.socketSendCommunityOneNotification("3", this.currentUser, follower);
     },
     ...mapActions({
       cancelFollow: DELETE_FOLLOWSHIP,
@@ -134,8 +214,6 @@ export default {
     handleShowModalClick() {
       this.showEditModal = false;
       this.$emit("show-edit-modal");
-      // edit
-      // this.$router.push(`/users/${this.initialUserObj.UserId}`);
     },
     async getCurrentUser() {
       try {
@@ -146,6 +224,7 @@ export default {
         }
 
         this.currentUserId = data.id;
+        this.currentUser = data;
       } catch (err) {
         console.log(err);
       }
