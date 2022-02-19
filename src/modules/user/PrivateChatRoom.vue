@@ -1,12 +1,10 @@
 ﻿<template>
   <div>
     <Spinner v-if="isLoading" />
-
     <div class="chat-room-wrapper" v-else>
       <div class="header">
         <div class="header-info">
-          <p v-if="isLoading">載入中...</p>
-          <p v-else-if="otherUser.name">
+          <p v-if="otherUser.name">
             {{ `${otherUser.name} @${otherUser.account}` }}
           </p>
           <p v-else>
@@ -160,13 +158,10 @@ export default {
   },
   async created() {
     try {
-      this.isLoading = true;
       await this.fetchCurrentUser();
       await this.fetchOtherUser();
-
       const { room } = this.$route.query;
       this.room = room || "";
-      this.isLoading = false;
     } catch (err) {
       errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
     }
@@ -231,6 +226,7 @@ export default {
     },
     async fetchOtherUser() {
       try {
+        this.isLoading = true;
         const { to } = this.$route.query;
         const res = await usersAPI.getUser(+to);
         const { data, statusText } = res;
@@ -238,12 +234,16 @@ export default {
           throw new Error(statusText);
         }
         this.otherUser = { ...data };
+        this.isLoading = false;
       } catch (err) {
+        this.isLoading = false;
+
         errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
       }
     },
     async fetchCurrentUser() {
       try {
+        this.isLoading = true;
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
 
@@ -251,8 +251,10 @@ export default {
           throw new Error(statusText);
         }
         this.currentUser = { ...data };
+        this.isLoading = false;
       } catch (err) {
-        console.log(err);
+        this.isLoading = false;
+        errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
       }
     },
   },

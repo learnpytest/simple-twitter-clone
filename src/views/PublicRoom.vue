@@ -15,8 +15,8 @@
             <p>上線使用者 ({{ allUsers.length }})</p>
           </div>
         </div>
-
-        <div class="active-users">
+        <Spinner v-if="isLoading" />
+        <div class="active-users" v-else>
           <div class="active-user" v-for="user in allUsers" :key="user.id">
             <router-link
               :to="{
@@ -52,6 +52,7 @@
 import Sidebar from "../modules/user/Sidebar.vue";
 import NewTweetModal from "../modules/user/NewTweetModal.vue";
 import ChatRoom from "../modules/user/ChatRoom.vue";
+import Spinner from "@/components/Loaders/Spinner.vue";
 
 import currentUserAPI from "@/apis/currentUserAPI";
 
@@ -61,9 +62,12 @@ import socket from "../main";
 
 import { mapState } from "vuex";
 
+import errorHandler from "../utils/errorHandler";
+
 export default {
   mixins: [mixinEmptyImage],
   components: {
+    Spinner,
     Sidebar,
     NewTweetModal,
     ChatRoom,
@@ -76,6 +80,7 @@ export default {
     return {
       showModal: false,
       showReplyModal: false,
+      isLoading: true,
       currentUser: {},
     };
   },
@@ -107,6 +112,7 @@ export default {
     },
     async fetchCurrentUserAndEmitNewUser() {
       try {
+        this.isLoading = true;
         const res = await currentUserAPI.getCurrentUser();
         const { data, statusText } = res;
 
@@ -115,8 +121,9 @@ export default {
         }
         this.currentUser = { ...data };
         this.newUser();
+        this.isLoading = false;
       } catch (err) {
-        console.log(err);
+        errorHandler.generalErrorHandler(err)(this);
       }
     },
     newUser() {

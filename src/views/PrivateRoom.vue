@@ -188,27 +188,33 @@ export default {
     });
   },
   async beforeRouteUpdate(to, from, next) {
-    await this.fetchCurrentUser();
-    // 通知 socket server，增加一個新的使用者進入私人聊天室，不論是否指定聊天室的 id
-    await messagesSocket.emitDisplayLatestPrivateRoomMessages(this.currentUser);
+    try {
+      await this.fetchCurrentUser();
+      // 通知 socket server，增加一個新的使用者進入私人聊天室，不論是否指定聊天室的 id
+      await messagesSocket.emitDisplayLatestPrivateRoomMessages(
+        this.currentUser
+      );
 
-    // 進入元件、路由改變要取得所有未讀資料
-    await socket.emit("getAllUnreadPrivateMessages", this.currentUser.id);
+      // 進入元件、路由改變要取得所有未讀資料
+      await socket.emit("getAllUnreadPrivateMessages", this.currentUser.id);
 
-    if (!to.query.room) {
-      this.$store.dispatch("CLEAR_ONE_ROOM_MESSAGES");
-      return next();
+      if (!to.query.room) {
+        this.$store.dispatch("CLEAR_ONE_ROOM_MESSAGES");
+        return next();
+      }
+      // 通知 socket server，增加一個使用者進入私人聊天室，指定聊天室 id，確認這個聊天是是否已經建立，如果已經建立，並且已經有聊天訊息將歷史訊息，給前端資料顯示指定聊天室的訊息
+      await this.fetchOtherUser(to.query.to);
+
+      await messagesSocket.emitDisplayOneRoomMessages(
+        to.query.room,
+        this.currentUser,
+        this.otherUser
+      );
+      next();
+    } catch (err) {
+      errorHandler.generalErrorHandler("無法取得資料，請稍後再試")(this);
+      next(err);
     }
-    // 通知 socket server，增加一個使用者進入私人聊天室，指定聊天室 id，確認這個聊天是是否已經建立，如果已經建立，並且已經有聊天訊息將歷史訊息，給前端資料顯示指定聊天室的訊息
-    await this.fetchOtherUser(to.query.to);
-
-    await messagesSocket.emitDisplayOneRoomMessages(
-      to.query.room,
-      this.currentUser,
-      this.otherUser
-    );
-
-    next();
   },
   async created() {
     try {
@@ -236,6 +242,8 @@ export default {
         this.otherUser
       );
     } catch (err) {
+      this.isLoading = false;
+
       errorHandler.generalErrorHandler(err)(this);
     }
   },
