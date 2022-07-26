@@ -2,5 +2,5 @@
 // ./vue.config.js
 module.exports = {
   publicPath:
-    process.env.NODE_ENV === "production" ? "/Playground-Chatroom/" : "/",
+    process.env.NODE_ENV === "production" ? "/simple-twitter-clone/" : "/",
 };
