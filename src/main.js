@@ -1,7 +1,7 @@
+/* eslint-disable prettier/prettier */
 import Vue from "vue";
 import App from "./App.vue";
 import router from "./router";
-// import './assets/scss/reset.scss'
 import store from "./store";
 
 import currentUserAPi from "./apis/currentUserAPI";
@@ -9,9 +9,7 @@ import currentUserAPi from "./apis/currentUserAPI";
 import VueChatScroll from "vue-chat-scroll";
 
 import VueSocketIO from "vue-socket.io";
-import {
-  io
-} from "socket.io-client";
+import { io } from "socket.io-client";
 
 Vue.config.productionTip = false;
 const socketOptions = {
@@ -25,10 +23,8 @@ const socketOptions = {
   transports: ["websocket", "polling"],
 };
 
-// const socket = io("http://localhost:5000", socketOptions);
-
 const socket = io(
-  "https://591f-2001-b011-e-3167-5946-d13b-81dd-f47.ngrok.io",
+  process.env.VUE_APP_SOCKET_URL,
   socketOptions
 );
 
@@ -44,13 +40,6 @@ Vue.use(
   })
 );
 
-// Vue.directive("focus", {
-//   inserted: function (el) {
-//     el.focus();
-//     console.log(el);
-//   },
-// });
-
 Vue.use(VueChatScroll);
 
 export const vm = new Vue({
@@ -58,11 +47,8 @@ export const vm = new Vue({
   store,
   sockets: {
     async connect() {
-      console.log("main.js connected in main.js");
       const res = await currentUserAPi.getCurrentUser();
-      const {
-        data
-      } = res;
+      const { data } = res;
       socket.emit("socketConnected", data);
     },
 

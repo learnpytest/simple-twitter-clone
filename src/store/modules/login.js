@@ -86,14 +86,7 @@ const actions = {
         account,
         password,
       });
-      const { data, statusText } = res;
-      if (statusText !== "OK" || data.status !== "success") {
-        console.log(res.data);
-        // dispatch(ADD_NOTIFICATION, {
-        //   type: "error",
-        //   message: "帳號不存在！",
-        // });
-      }
+      const { data } = res;
       localStorage.setItem("token", data.token);
       commit(SET_CURRENT_USER, data.user);
       commit(RESET_CURRENT_USER_PROFILE, data.user);

@@ -268,15 +268,10 @@ export default {
     myAllUnreadPrivateMessages: {
       handler(value) {
         this.getThisRoomUnread(value);
-        console.log("執行卷軸向下");
         const thisEl = document.querySelector("#chatRoom");
         if (!thisEl) return;
         thisEl.scrollTop =
           thisEl.scrollHeight - this.thisRoomUnread * 11.5 - 50;
-
-        // thisEl.addEventListener("scroll", () => {
-        // thisEl.scrollTop + thisEl.clientHeight + 50 >= thisEl.scrollHeight
-        // });
       },
     },
     deep: true,

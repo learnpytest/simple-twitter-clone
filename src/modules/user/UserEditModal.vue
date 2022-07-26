@@ -154,10 +154,6 @@ export default {
       const formData = new FormData(form);
       const payload = { formData, userId: this.userId };
       this.putCurrentUserProfile(payload);
-      // // 測試用
-      // for (let [name, value] of formData.entries()) {
-      //   console.log(name + ": " + value);
-      // }
       this.$emit("afterUpdateUserProfile", this.userId);
       setTimeout(() => {
         this.handleShowModalClick();

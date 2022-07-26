@@ -49,7 +49,6 @@ export default {
   sockets: {
     getAllCommunityNotification(myCommunityFeed) {
       this.$store.dispatch("RESET_COMMUNITY_NOTIFICATION", myCommunityFeed);
-      console.log("myCommunityFeed是甚麼:", myCommunityFeed);
     },
     addOneCommunityNotification(newCommunityFeed) {
       this.$store.dispatch("INCREMENT_UNREAD_COMMUNITY_NOTIFICATION");

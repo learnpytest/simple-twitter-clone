@@ -41,13 +41,6 @@ const getters = {
 };
 const actions = {
   [SET_CURRENT_USER_FOLLOWERS]: async ({ commit }, userId) => {
-    // console.log("checkfollowers", vm.$router.params.id);
-
-    // send api
-
-    // const res = await currentUserAPI.getCurrentUser();
-    // const userId = res.data.id;
-    // const userId = vm.$route.params.id;
     try {
       const res = await followshipAPI.getFollowers(userId);
       const { statusText, data } = res;
@@ -61,9 +54,6 @@ const actions = {
   },
   [SET_CURRENT_USER_FOLLOWINGS]: async ({ commit }, userId) => {
     // send api
-
-    // const res = await currentUserAPI.getCurrentUser();
-    // const userId = res.data.id;
     try {
       const res = await followshipAPI.getFollowings(userId);
       const { statusText, data } = res;

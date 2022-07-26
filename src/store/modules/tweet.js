@@ -85,7 +85,6 @@ const actions = {
     try {
       const res = await tweets.getOneUserLikes(userId);
       const { data, statusText } = res;
-      console.log("try", data);
       if (statusText !== "OK") throw new Error("statusText");
       commit(SET_ONE_USER_LIKES, data);
     } catch (err) {
