@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import tweets from "../../apis/tweets";
 
 import { vm } from "../../main";
