@@ -38,7 +38,7 @@
       <div
         class="chat-room"
         v-chat-scroll="{
-          always: false,
+          always: true,
           smooth: true,
         }"
         @click.stop.prevent="makeUnreadPublicMessageZero"
@@ -86,12 +86,7 @@ export default {
   },
 
   async created() {
-    // window.onbeforeunload = () => {
-    //   socket.emit("leaved", this.currentUser);
-    // };
-
     await this.fetchCurrentUserAndEmitNewUser();
-
     this.makeUnreadPublicMessageZero();
   },
   computed: {
